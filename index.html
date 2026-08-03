@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>主播统计表</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
@@ -400,7 +403,7 @@ let _saveSumPending = false;
 // Read a JSON file from GitHub repo. Returns { data, sha } or null on failure.
 async function ghRead(path) {
   try {
-    let resp = await fetch(GH_API + path + '?ref=' + GH_BRANCH, { headers: GH_HEADERS });
+    let resp = await fetch(GH_API + path + '?ref=' + GH_BRANCH + '&_t=' + Date.now(), { headers: GH_HEADERS, cache: 'no-cache' });
     if (!resp.ok) return null;
     let json = await resp.json();
     let content = JSON.parse(decodeURIComponent(escape(atob(json.content))));

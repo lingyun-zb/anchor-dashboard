@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: anchor-dashboard
+    env: node
+    region: singapore
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    autoDeploy: true

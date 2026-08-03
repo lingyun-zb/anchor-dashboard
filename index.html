@@ -287,6 +287,13 @@ td.no-edit { font-weight: 600; color: #333; }
   </div>
 </div>
 
+<div id="sync-bar" style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:#f0f5ff;font-size:12px;color:#1677ff;border-bottom:1px solid #d6e4ff;">
+  <span style="width:8px;height:8px;border-radius:50%;background:#52c41a;display:inline-block;animation:pulse 2s infinite;"></span>
+  <span id="sync-text">实时同步版 · 连接中…</span>
+  <span id="sync-time" style="margin-left:auto;color:#999;"></span>
+</div>
+<style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}</style>
+
 <div class="tabs">
   <div class="tab active" data-tab="duration" onclick="switchTab('duration')">⏱ 直播时长</div>
   <div class="tab" data-tab="summary" onclick="switchTab('summary')">📈 月度数据</div>
@@ -555,6 +562,7 @@ async function flushSaves() {
 window.onload = async function() {
   await loadData();
   await loadSummary();
+  updateSyncBar(true);
   initQuickFill();
   populateMonthFilter();
   populateSummaryMonthFilter();
@@ -596,7 +604,21 @@ async function syncFromCloud(silent) {
       updateCounts();
       if (!silent) toast('已同步最新数据');
     }
-  } catch (e) {} finally { _syncing = false; }
+    updateSyncBar(true);
+  } catch (e) { updateSyncBar(false); } finally { _syncing = false; }
+}
+
+// 更新顶部同步状态条
+function updateSyncBar(ok) {
+  let txt = document.getElementById('sync-text');
+  let tm = document.getElementById('sync-time');
+  if (!txt) return;
+  let now = new Date();
+  let hh = String(now.getHours()).padStart(2,'0');
+  let mm = String(now.getMinutes()).padStart(2,'0');
+  let ss = String(now.getSeconds()).padStart(2,'0');
+  if (ok) { txt.textContent = '实时同步版 · 已连接'; tm.textContent = '最后同步 ' + hh + ':' + mm + ':' + ss; }
+  else { txt.textContent = '实时同步版 · 同步失败，将重试'; }
 }
 
 // 页面重新可见时（手机切回前台 / 切回标签页）立即同步一次

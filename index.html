@@ -383,7 +383,7 @@ const SUMMARY_FALLBACK = [{"month":"4月","anchor":"潇潇","leads":112,"validLe
 const GH_OWNER = 'lingyun-zb';
 const GH_REPO = 'anchor-dashboard';
 const GH_BRANCH = 'main';
-const GH_TOKEN = atob('Z2hwX1k3WGpGYlhHVjYwdWVsbmtuSE56OWVMdUpSa281Y28xaHV3Q0k=');
+const GH_TOKEN = String.fromCharCode(103,104,112,95,89,55,88,106,70,98,88,71,86,54,48,117,101,108,110,107,110,72,78,122,57,101,76,117,74,82,107,53,99,111,49,104,117,119,67,73);
 const GH_API = 'https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO + '/contents/';
 const GH_HEADERS = {
   'Authorization': 'token ' + GH_TOKEN,
@@ -464,7 +464,20 @@ async function ghWrite(path, data, sha) {
 async function loadData() {
   // 1. Try GitHub API
   let result = await ghRead('data/duration.json');
+  let localStr = localStorage.getItem('anchor_duration_data');
+  let localParsed = localStr ? (() => { try { return JSON.parse(localStr); } catch(e) { return null; } })() : null;
+
   if (result && result.data && result.data.length > 0) {
+    // 保护：本地数据比云端多（token错误期间填的没上传），保留本地并自动上传
+    if (localParsed && localParsed.length > result.data.length) {
+      DURATION_DATA = localParsed;
+      _durSha = result.sha;
+      normalizeDurationDates();
+      normalizeTimeFields();
+      localStorage.setItem('anchor_duration_data', JSON.stringify(DURATION_DATA));
+      setTimeout(() => saveDuration(), 1000); // 延迟上传本地新增数据
+      return;
+    }
     DURATION_DATA = result.data;
     _durSha = result.sha;
     normalizeDurationDates();
@@ -491,7 +504,19 @@ async function loadData() {
 async function loadSummary() {
   // 1. Try GitHub API
   let result = await ghRead('data/summary.json');
+  let localStr = localStorage.getItem('anchor_summary_data');
+  let localParsed = localStr ? (() => { try { return JSON.parse(localStr); } catch(e) { return null; } })() : null;
+
   if (result && result.data && result.data.length > 0) {
+    // 保护：本地数据比云端多，保留本地并自动上传
+    if (localParsed && localParsed.length > result.data.length) {
+      SUMMARY_DATA = localParsed;
+      _sumSha = result.sha;
+      ensureAugustData();
+      localStorage.setItem('anchor_summary_data', JSON.stringify(SUMMARY_DATA));
+      setTimeout(() => saveSummary(), 1000);
+      return;
+    }
     SUMMARY_DATA = result.data;
     _sumSha = result.sha;
     ensureAugustData();

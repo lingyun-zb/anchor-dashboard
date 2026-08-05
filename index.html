@@ -810,6 +810,13 @@ function getFilteredDuration() {
     data = data.filter(r => { let mo = extractMonth(r.date); return mo >= startMo && mo <= endMo; });
   }
   if (a) data = data.filter(r => r.anchor === a);
+  // 按日期+时间升序排（日期早的在前；同日按开始时间早的在前）
+  data = data.slice().sort((a, b) => {
+    let ad = (a.date || '').replace(/-/g, '');
+    let bd = (b.date || '').replace(/-/g, '');
+    if (ad !== bd) return ad < bd ? -1 : 1;
+    return ((a.start_time || '') < (b.start_time || '')) ? -1 : (((a.start_time || '') > (b.start_time || '')) ? 1 : 0);
+  });
   return data;
 }
 

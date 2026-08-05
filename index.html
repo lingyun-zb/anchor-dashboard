@@ -350,6 +350,7 @@ td.no-edit { font-weight: 600; color: #333; }
       <label>主播：</label>
       <select id="filter-summary-anchor" onchange="renderSummary()"><option value="">全部</option><option>潇潇</option><option>六六</option><option>总计</option></select>
       <button class="btn btn-sm" onclick="toggleAllSummaryMonths()" style="margin-left:auto;border-color:#d9e8ff;color:#1677ff;background:#fff" id="btn-toggle-summary">📂 全部折叠</button>
+      <button class="btn btn-sm" onclick="addSummaryMonth()" style="border-color:#52c41a;color:#fff;background:#52c41a">＋ 添加月份</button>
     </div>
 
     <div class="kpi-row" id="summary-kpi-row"></div>
@@ -1204,13 +1205,34 @@ function parseDateToYMD(dateStr, defaultYear) {
   return null;
 }
 
-function ensureAugustData() {
-  let augXiao = SUMMARY_DATA.find(r => r.month.includes('8') && r.anchor === '潇潇');
-  let augLiuliu = SUMMARY_DATA.find(r => r.month.includes('8') && r.anchor === '六六');
-  let augTotal = SUMMARY_DATA.find(r => r.month.includes('8') && r.anchor === '总计');
-  if (!augXiao) SUMMARY_DATA.push({"month": "8月", "anchor": "潇潇", "leads": 0, "validLeads": 0, "validRate": 0, "totalReceipts": 0, "storeVisits": 0, "leadToStore": 0, "validToStore": 0, "orders": 0, "orderValue": 0, "leadOrderRate": 0, "validOrderRate": 0, "totalCost": 0, "leadCost": 0, "validCost": 0, "roi": 0});
-  if (!augLiuliu) SUMMARY_DATA.push({"month": "8月", "anchor": "六六", "leads": 0, "validLeads": 0, "validRate": 0, "totalReceipts": 0, "storeVisits": 0, "leadToStore": 0, "validToStore": 0, "orders": 0, "orderValue": 0, "leadOrderRate": 0, "validOrderRate": 0, "totalCost": 0, "leadCost": 0, "validCost": 0, "roi": 0});
-  if (!augTotal) SUMMARY_DATA.push({"month": "8月", "anchor": "总计", "leads": 0, "validLeads": 0, "validRate": 0, "totalReceipts": 0, "storeVisits": 0, "leadToStore": 0, "validToStore": 0, "orders": 0, "orderValue": 0, "leadOrderRate": 0, "validOrderRate": 0, "totalCost": 0, "leadCost": 0, "validCost": 0, "roi": 0});
+function ensureMonthData(monthNum) {
+  let label = monthNum + '月';
+  ['潇潇', '六六', '总计'].forEach(anchor => {
+    let exists = SUMMARY_DATA.find(r => r.month.includes(String(monthNum)) && r.anchor === anchor);
+    if (!exists) SUMMARY_DATA.push({"month": label, "anchor": anchor, "leads": 0, "validLeads": 0, "validRate": 0, "totalReceipts": 0, "storeVisits": 0, "leadToStore": 0, "validToStore": 0, "orders": 0, "orderValue": 0, "leadOrderRate": 0, "validOrderRate": 0, "totalCost": 0, "leadCost": 0, "validCost": 0, "roi": 0});
+  });
+}
+
+function ensureAugustData() { ensureMonthData(8); }
+
+// 添加新月份（弹出选择框）
+function addSummaryMonth() {
+  let existingMonths = new Set();
+  SUMMARY_DATA.forEach(r => { let m = parseMonthNum(r.month); if (m) existingMonths.add(m); });
+  let available = [];
+  for (let i = 1; i <= 12; i++) { if (!existingMonths.has(i)) available.push(i); }
+  if (available.length === 0) { toast('1-12月已全部添加'); return; }
+  let hint = available.map(m => m + '月').join('、');
+  let input = prompt('请输入要添加的月份（数字1-12）\n可添加：' + hint, available[0]);
+  if (!input) return;
+  let m = parseInt(input);
+  if (isNaN(m) || m < 1 || m > 12) { toast('请输入1-12的数字'); return; }
+  if (existingMonths.has(m)) { toast(m + '月数据已存在'); return; }
+  ensureMonthData(m);
+  saveSummary();
+  populateSummaryMonthFilter();
+  renderSummary();
+  toast(m + '月已添加，直接在表格中填写数据即可');
 }
 
 // Auto-calculate duration and time string from start_time / end_time

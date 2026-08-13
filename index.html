@@ -465,20 +465,8 @@ async function ghWrite(path, data, sha) {
 async function loadData() {
   // 1. Try GitHub API
   let result = await ghRead('data/duration.json');
-  let localStr = localStorage.getItem('anchor_duration_data');
-  let localParsed = localStr ? (() => { try { return JSON.parse(localStr); } catch(e) { return null; } })() : null;
 
   if (result && result.data && result.data.length > 0) {
-    // 保护：本地数据比云端多（token错误期间填的没上传），保留本地并自动上传
-    if (localParsed && localParsed.length > result.data.length) {
-      DURATION_DATA = localParsed;
-      _durSha = result.sha;
-      normalizeDurationDates();
-      normalizeTimeFields();
-      localStorage.setItem('anchor_duration_data', JSON.stringify(DURATION_DATA));
-      setTimeout(() => saveDuration(), 1000); // 延迟上传本地新增数据
-      return;
-    }
     DURATION_DATA = result.data;
     _durSha = result.sha;
     normalizeDurationDates();
@@ -505,19 +493,8 @@ async function loadData() {
 async function loadSummary() {
   // 1. Try GitHub API
   let result = await ghRead('data/summary.json');
-  let localStr = localStorage.getItem('anchor_summary_data');
-  let localParsed = localStr ? (() => { try { return JSON.parse(localStr); } catch(e) { return null; } })() : null;
 
   if (result && result.data && result.data.length > 0) {
-    // 保护：本地数据比云端多，保留本地并自动上传
-    if (localParsed && localParsed.length > result.data.length) {
-      SUMMARY_DATA = localParsed;
-      _sumSha = result.sha;
-      ensureAugustData();
-      localStorage.setItem('anchor_summary_data', JSON.stringify(SUMMARY_DATA));
-      setTimeout(() => saveSummary(), 1000);
-      return;
-    }
     SUMMARY_DATA = result.data;
     _sumSha = result.sha;
     ensureAugustData();
@@ -546,28 +523,33 @@ async function loadSummary() {
   ensureAugustData();
 }
 
+let _durDirty = false;  // 本地有未上传的时长数据
+let _sumDirty = false;  // 本地有未上传的月度数据
+
 function saveDuration() {
   localStorage.setItem('anchor_duration_data', JSON.stringify(DURATION_DATA));
   recalcSummary();
 
+  _durDirty = true;
   if (_saveDurTimer) clearTimeout(_saveDurTimer);
   _saveDurPending = true;
   _saveDurTimer = setTimeout(async () => {
     _saveDurPending = false;
     let newSha = await ghWrite('data/duration.json', DURATION_DATA, _durSha);
-    if (newSha) _durSha = newSha;
+    if (newSha) { _durSha = newSha; _durDirty = false; }
   }, 500);
 }
 
 function saveSummary() {
   localStorage.setItem('anchor_summary_data', JSON.stringify(SUMMARY_DATA));
 
+  _sumDirty = true;
   if (_saveSumTimer) clearTimeout(_saveSumTimer);
   _saveSumPending = true;
   _saveSumTimer = setTimeout(async () => {
     _saveSumPending = false;
     let newSha = await ghWrite('data/summary.json', SUMMARY_DATA, _sumSha);
-    if (newSha) _sumSha = newSha;
+    if (newSha) { _sumSha = newSha; _sumDirty = false; }
   }, 500);
 }
 
@@ -612,18 +594,39 @@ let _syncTimer = null;
 // 从云端拉取最新数据；若与本地有差异则重渲染。silent=true 时不弹提示
 async function syncFromCloud(silent) {
   if (_syncing) return;
+  // 有未上传的本地数据时跳过，避免覆盖正在编辑的内容
+  if (_durDirty || _sumDirty) return;
   // 用户正在编辑输入框时跳过本次，避免打断输入（下个周期会重试）
   let ae = document.activeElement;
   if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.tagName === 'TEXTAREA')) return;
   _syncing = true;
   try {
-    const oldDur = JSON.stringify(DURATION_DATA);
-    const oldSum = JSON.stringify(SUMMARY_DATA);
-    await loadData();
-    await loadSummary();
-    const newDur = JSON.stringify(DURATION_DATA);
-    const newSum = JSON.stringify(SUMMARY_DATA);
-    if (newDur !== oldDur || newSum !== oldSum) {
+    let changed = false;
+    // 直接读云端，不走 loadData（避免触发"本地保护"逻辑导致额外上传）
+    let durResult = await ghRead('data/duration.json');
+    if (durResult && durResult.data) {
+      let cloudStr = JSON.stringify(durResult.data);
+      if (cloudStr !== JSON.stringify(DURATION_DATA)) {
+        DURATION_DATA = durResult.data;
+        _durSha = durResult.sha;
+        normalizeDurationDates();
+        normalizeTimeFields();
+        localStorage.setItem('anchor_duration_data', JSON.stringify(DURATION_DATA));
+        changed = true;
+      }
+    }
+    let sumResult = await ghRead('data/summary.json');
+    if (sumResult && sumResult.data) {
+      let cloudStr = JSON.stringify(sumResult.data);
+      if (cloudStr !== JSON.stringify(SUMMARY_DATA)) {
+        SUMMARY_DATA = sumResult.data;
+        _sumSha = sumResult.sha;
+        ensureAugustData();
+        localStorage.setItem('anchor_summary_data', JSON.stringify(SUMMARY_DATA));
+        changed = true;
+      }
+    }
+    if (changed) {
       if (currentTab === 'duration') renderDuration();
       else if (currentTab === 'summary') renderSummary();
       else renderQuarterly();
@@ -653,10 +656,10 @@ document.addEventListener('visibilitychange', () => {
 });
 // 窗口重新获得焦点时也同步一次（部分手机不触发 visibilitychange）
 window.addEventListener('focus', () => syncFromCloud(true));
-// 定时静默轮询：每 30 秒拉取一次（仅页面可见时）
+// 定时静默轮询：每 45 秒拉取一次（仅页面可见时）
 _syncTimer = setInterval(() => {
   if (!document.hidden) syncFromCloud(true);
-}, 30000);
+}, 45000);
 
 function isMobile() { return window.innerWidth <= 768; }
 

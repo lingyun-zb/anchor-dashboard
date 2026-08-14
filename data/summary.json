@@ -230,8 +230,8 @@
   {
     "month": "8月",
     "anchor": "潇潇",
-    "leads": 1,
-    "validLeads": 0,
+    "leads": 22,
+    "validLeads": 10,
     "validRate": 0,
     "totalReceipts": 0,
     "storeVisits": 0,
@@ -249,8 +249,8 @@
   {
     "month": "8月",
     "anchor": "总计",
-    "leads": 4,
-    "validLeads": 0,
+    "leads": 49,
+    "validLeads": 28,
     "validRate": 0,
     "totalReceipts": 0,
     "storeVisits": 0,
@@ -268,8 +268,8 @@
   {
     "month": "8月",
     "anchor": "六六",
-    "leads": 3,
-    "validLeads": 0,
+    "leads": 27,
+    "validLeads": 18,
     "validRate": 0,
     "totalReceipts": 0,
     "storeVisits": 0,

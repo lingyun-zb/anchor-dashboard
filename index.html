@@ -1550,7 +1550,17 @@ function renderSummaryTable(data) {
     let rows = monthGroups[monthNum];
     let isCurrent = monthNum === currentMonth;
     let show = isCurrent || allExpanded;
-    
+
+    // 修复 bug：calc 字段在渲染时即时计算（不依赖 storage 里可能是 0 的占位值）
+    // 月度 header 的 ROI badge 和表格里 5 个 calc 列都依赖于此
+    rows.forEach(r => {
+      r.validRate = r.leads > 0 ? r.validLeads / r.leads : 0;
+      r.leadToStore = r.leads > 0 ? r.storeVisits / r.leads : 0;
+      r.leadOrderRate = r.leads > 0 ? r.orders / r.leads : 0;
+      r.leadCost = r.leads > 0 ? r.totalCost / r.leads : 0;
+      r.roi = r.totalCost > 0 ? r.orderValue / r.totalCost : 0;
+    });
+
     // Summary info for this month
     let totalRow = rows.find(r => r.anchor === '总计');
     let leadsSum = totalRow ? (totalRow.leads || 0) : 0;
@@ -1577,6 +1587,7 @@ function renderSummaryTable(data) {
     rows.forEach(r => {
       let idx = SUMMARY_DATA.indexOf(r);
       let isTotal = r.anchor === '总计';
+      // calc 字段已在 monthKeys.forEach 顶部 backfill，这里直接用
       html += `<tr class="${isTotal?'total-row':''}">`;
       SUMMARY_COLS.forEach(c => {
         if (c.calc) html += `<td class="calc">${fmtVal(r[c.key], c.fmt)}</td>`;

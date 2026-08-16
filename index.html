@@ -1562,10 +1562,20 @@ function renderSummaryTable(data) {
     });
 
     // Summary info for this month
+    // 兼容没有"总计"行的早期月份（如 1-3月只有潇潇单主播）：
+    //   有总计行 → 直接用总计；无总计行 → 聚合主播行（求和 + max ROI）
     let totalRow = rows.find(r => r.anchor === '总计');
-    let leadsSum = totalRow ? (totalRow.leads || 0) : 0;
-    let ordersSum = totalRow ? (totalRow.orders || 0) : 0;
-    let roiStr = totalRow && totalRow.roi != null ? Number(totalRow.roi).toFixed(2) : '--';
+    let leadsSum, ordersSum, maxRoi = 0;
+    if (totalRow) {
+      leadsSum = totalRow.leads || 0;
+      ordersSum = totalRow.orders || 0;
+      maxRoi = totalRow.roi || 0;
+    } else {
+      leadsSum = rows.reduce((s, r) => s + (r.leads || 0), 0);
+      ordersSum = rows.reduce((s, r) => s + (r.orders || 0), 0);
+      rows.forEach(r => { if (r.roi && r.roi > maxRoi) maxRoi = r.roi; });
+    }
+    let roiStr = maxRoi > 0 ? maxRoi.toFixed(2) : '--';
     
     html += `<div class="summary-month-section" data-summary-month="${monthNum}">
       <div class="summary-month-header${isCurrent ? ' current' : ''}" onclick="toggleSummaryMonth(this)" data-expanded="${show ? '1' : '0'}">

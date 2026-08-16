@@ -1621,12 +1621,12 @@ function buildYearlyTotalSection() {
   // Compute yearly totals from ALL SUMMARY_DATA, grouped by anchor
   let allData = SUMMARY_DATA.slice();
   let anchors = ['潇潇', '六六', '总计'];
-  
+
   let computed = {};
   anchors.forEach(a => {
     let rows = allData.filter(r => r.anchor === a);
     if (rows.length === 0) return;
-    
+
     let leads = rows.reduce((s, r) => s + (r.leads || 0), 0);
     let validLeads = rows.reduce((s, r) => s + (r.validLeads || 0), 0);
     let totalReceipts = rows.reduce((s, r) => s + (r.totalReceipts || 0), 0);
@@ -1634,13 +1634,13 @@ function buildYearlyTotalSection() {
     let orders = rows.reduce((s, r) => s + (r.orders || 0), 0);
     let orderValue = rows.reduce((s, r) => s + (r.orderValue || 0), 0);
     let totalCost = rows.reduce((s, r) => s + (r.totalCost || 0), 0);
-    
+
     let validRate = leads > 0 ? validLeads / leads : 0;
     let leadToStore = leads > 0 ? storeVisits / leads : 0;
     let leadOrderRate = leads > 0 ? orders / leads : 0;
     let leadCost = leads > 0 ? totalCost / leads : 0;
     let roi = totalCost > 0 ? orderValue / totalCost : 0;
-    
+
     computed[a] = {
       month: '全年', anchor: a,
       leads, validLeads, validRate, totalReceipts, storeVisits,
@@ -1648,7 +1648,21 @@ function buildYearlyTotalSection() {
       totalCost, leadCost, roi
     };
   });
-  
+
+  // 修复 bug：早期月份（1-3月）没有"总计"行，直接累加各月总计会漏数。
+  // 改为：用"潇潇+六六"实时算全年总计，保证数据自洽。
+  if (computed['潇潇'] || computed['六六']) {
+    let keys = ['leads','validLeads','totalReceipts','storeVisits','orders','orderValue','totalCost'];
+    let total = { month: '全年', anchor: '总计' };
+    keys.forEach(k => total[k] = (computed['潇潇'] ? computed['潇潇'][k] : 0) + (computed['六六'] ? computed['六六'][k] : 0));
+    total.validRate = total.leads > 0 ? total.validLeads / total.leads : 0;
+    total.leadToStore = total.leads > 0 ? total.storeVisits / total.leads : 0;
+    total.leadOrderRate = total.leads > 0 ? total.orders / total.leads : 0;
+    total.leadCost = total.leads > 0 ? total.totalCost / total.leads : 0;
+    total.roi = total.totalCost > 0 ? total.orderValue / total.totalCost : 0;
+    computed['总计'] = total;
+  }
+
   if (Object.keys(computed).length === 0) return '';
   
   // Summary badges for header

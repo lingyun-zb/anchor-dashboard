@@ -274,9 +274,72 @@ td.no-edit { font-weight: 600; color: #333; }
   .yearly-total-body { border-radius: 0 0 10px 10px; }
 
 }
+
+/* ===== 密码门 ===== */
+#gate-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
+  z-index: 99999; display: flex; align-items: center; justify-content: center;
+}
+#gate-box {
+  background: #fff; border-radius: 16px; padding: 36px 40px; text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,.25); max-width: 320px; width: 88%;
+}
+#gate-box h2 { font-size: 20px; color: #333; margin-bottom: 6px; font-weight: 700; }
+#gate-box .gate-sub { font-size: 13px; color: #999; margin-bottom: 22px; }
+#gate-input {
+  width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 10px;
+  font-size: 20px; text-align: center; letter-spacing: 6px; outline: none;
+  transition: border-color .2s; -webkit-text-security: disc;
+}
+#gate-input:focus { border-color: #1677ff; }
+#gate-btn {
+  width: 100%; margin-top: 14px; padding: 12px; border: none; border-radius: 10px;
+  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%); color: #fff;
+  font-size: 15px; font-weight: 600; cursor: pointer; transition: all .2s;
+}
+#gate-btn:hover { box-shadow: 0 4px 12px rgba(22,119,255,.35); }
+#gate-btn:active { transform: translateY(1px); }
+#gate-err { color: #ff4d4f; font-size: 13px; margin-top: 10px; min-height: 18px; }
 </style>
 </head>
 <body>
+
+<!-- 密码门遮罩 -->
+<div id="gate-overlay">
+  <div id="gate-box">
+    <h2>📊 主播统计表</h2>
+    <div class="gate-sub">请输入访问密码</div>
+    <input type="tel" id="gate-input" placeholder="输入密码" autocomplete="off" inputmode="numeric"
+           onkeydown="if(event.key==='Enter')gateSubmit()">
+    <button id="gate-btn" onclick="gateSubmit()">进 入</button>
+    <div id="gate-err"></div>
+  </div>
+</div>
+<script>
+// 密码混淆存储（非明文，charCode 数组还原）
+var _g = String.fromCharCode(49,52,55,50,53,56);
+function gateSubmit(){
+  var v = document.getElementById('gate-input').value.trim();
+  if(v === _g){
+    sessionStorage.setItem('_gk','1');
+    var o = document.getElementById('gate-overlay');
+    o.style.transition='opacity .3s'; o.style.opacity='0';
+    setTimeout(function(){ o.style.display='none'; },300);
+  } else {
+    var e = document.getElementById('gate-err');
+    e.textContent = '密码错误，请重试';
+    var i = document.getElementById('gate-input');
+    i.value = ''; i.focus();
+  }
+}
+// 已验证（同一浏览器会话内）则跳过
+if(sessionStorage.getItem('_gk')==='1'){
+  document.addEventListener('DOMContentLoaded',function(){
+    document.getElementById('gate-overlay').style.display='none';
+  });
+}
+</script>
 
 <div class="header">
   <h1>📊 主播直播统计表</h1>

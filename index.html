@@ -1500,7 +1500,7 @@ function renderSummaryKPIs(totals, selMonth) {
     </div>
     <div class="kpi-card kpi-red">
       <div class="kpi-label">总花费</div>
-      <div class="kpi-value">\u00A5${(totalCost).toLocaleString()}</div>
+      <div class="kpi-value">${fmtMoneyInt(totalCost)}</div>
       <div class="kpi-bar" style="width:${Math.min(100,totalCost/10000)}%"></div>
     </div>
     <div class="kpi-card kpi-purple">
@@ -1665,7 +1665,16 @@ function renderSummaryTable(data) {
       html += `<tr class="${isTotal?'total-row':''}">`;
       SUMMARY_COLS.forEach(c => {
         if (c.calc) html += `<td class="calc">${fmtVal(r[c.key], c.fmt)}</td>`;
-        else html += `<td><input value="${esc(String(r[c.key]===0?'0':r[c.key]||''))}" data-sidx="${idx}" data-field="${c.key}" onchange="updateSummary(this)" onfocus="this.select()"></td>`;
+        else {
+          // money 字段在 input 显示前做 Math.round，避免浮点累加精度噪声（如 39198.729999）
+          let raw = r[c.key];
+          let inputVal;
+          if (raw === 0) inputVal = '0';
+          else if (raw == null) inputVal = '';
+          else if (typeof raw === 'number' && c.fmt === 'money') inputVal = Math.round(raw).toString();
+          else inputVal = String(raw);
+          html += `<td><input value="${esc(inputVal)}" data-sidx="${idx}" data-field="${c.key}" onchange="updateSummary(this)" onfocus="this.select()"></td>`;
+        }
       });
       html += '</tr>';
     });
@@ -1744,8 +1753,8 @@ function buildYearlyTotalSection() {
       <span class="y-summary">
         <span class="y-summary-item">总线索 <b>${totalLeads}</b></span>
         <span class="y-summary-item">总签单 <b>${totalOrders}</b></span>
-        <span class="y-summary-item">总签单值 <b>¥${(totalValue).toLocaleString()}</b></span>
-        <span class="y-summary-item">总花费 <b>¥${(totalCostY).toLocaleString()}</b></span>
+        <span class="y-summary-item">总签单值 <b>¥${(Math.round(totalValue)).toLocaleString()}</b></span>
+        <span class="y-summary-item">总花费 <b>¥${(Math.round(totalCostY)).toLocaleString()}</b></span>
         <span class="y-summary-item">ROI <b>${totalRoi}</b></span>
       </span>
     </div>
@@ -1792,6 +1801,11 @@ function toggleYearlyTotal(el) {
 function fmtRaw(v, fmt) {
   if (fmt === 'money') return v.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
   return String(v);
+}
+
+// Format money without ¥ symbol, integer-rounded (避免浮点累加精度噪声 39198.729999)
+function fmtMoneyInt(v) {
+  return '\u00A5' + Math.round(Number(v) || 0).toLocaleString();
 }
 
 function toggleSummaryMonth(el) {
@@ -2057,7 +2071,7 @@ function renderQCompare(q2, q3, q2X, q2L, q3X, q3L) {
         <div class="q-metrics">
           ${qMetric('线索数', q2.leads, '')}${qMetric('有效数', q2.validLeads, '')}
           ${qMetric('有效率', (q2.validRate*100).toFixed(1)+'%', '')}${qMetric('签单数', q2.orders, '')}
-          ${qMetric('签单值', '\u00A5'+q2.orderValue.toLocaleString(), '')}${qMetric('总花费', '\u00A5'+q2.totalCost.toLocaleString(), '')}
+          ${qMetric('签单值', fmtMoneyInt(q2.orderValue), '')}${qMetric('总花费', fmtMoneyInt(q2.totalCost), '')}
           ${qMetric('线索成本', '\u00A5'+(q2.leadCost||0).toLocaleString(undefined,{minimumFractionDigits:1, maximumFractionDigits:1}), '')}${qMetric('ROI', q2.roi.toFixed(2), '')}
         </div>
       </div>
@@ -2065,7 +2079,7 @@ function renderQCompare(q2, q3, q2X, q2L, q3X, q3L) {
         <div class="q-metrics">
           ${qMetric('线索数', q3.leads, deltaStr(q3.leads, q2.leads))}${qMetric('有效数', q3.validLeads, deltaStr(q3.validLeads, q2.validLeads))}
           ${qMetric('有效率', (q3.validRate*100).toFixed(1)+'%', '')}${qMetric('签单数', q3.orders, deltaStr(q3.orders, q2.orders))}
-          ${qMetric('签单值', '\u00A5'+q3.orderValue.toLocaleString(), deltaStr(q3.orderValue, q2.orderValue))}${qMetric('总花费', '\u00A5'+q3.totalCost.toLocaleString(), deltaStr(q3.totalCost, q2.totalCost))}
+          ${qMetric('签单值', fmtMoneyInt(q3.orderValue), deltaStr(q3.orderValue, q2.orderValue))}${qMetric('总花费', fmtMoneyInt(q3.totalCost), deltaStr(q3.totalCost, q2.totalCost))}
           ${qMetric('线索成本', '\u00A5'+(q3.leadCost||0).toLocaleString(undefined,{minimumFractionDigits:1, maximumFractionDigits:1}), '')}${qMetric('ROI', q3.roi.toFixed(2), deltaStr(q3.roi, q2.roi))}
         </div>
       </div>
@@ -2111,7 +2125,7 @@ function renderSingleQ(q, qX, qL, title) {
       <div class="q-metrics">
         ${qMetric('线索数', q.leads, '')}${qMetric('有效数', q.validLeads, '')}
         ${qMetric('有效率', (q.validRate*100).toFixed(1)+'%', '')}${qMetric('签单数', q.orders, '')}
-        ${qMetric('签单值', '\u00A5'+q.orderValue.toLocaleString(), '')}${qMetric('总花费', '\u00A5'+q.totalCost.toLocaleString(), '')}
+        ${qMetric('签单值', fmtMoneyInt(q.orderValue), '')}${qMetric('总花费', fmtMoneyInt(q.totalCost), '')}
         ${qMetric('ROI', q.roi.toFixed(2), '')}${qMetric('线索成本', '\u00A5'+(q.leadCost||0).toLocaleString(undefined,{minimumFractionDigits:1, maximumFractionDigits:1}), '')}
       </div>
     </div>

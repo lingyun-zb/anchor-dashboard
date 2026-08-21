@@ -1527,10 +1527,21 @@ function renderSummaryCharts() {
   let valueData = totals.map(t => t.orderValue||0);
   
   // Xiao vs Liuliu leads
+  // 修复 bug：1-3月只有潇潇、8月六六新增——六六数据不连续时不能直接 .map 顺序填到 labels 前 N 位
+  // 改为用统一月份轴构造对齐数组，缺失月份填 null（Chart.js bar 跳过 null → 不画柱）
   let xiaoData = getAnchorMonthly('潇潇');
   let liuliuData = getAnchorMonthly('六六');
   let monthsForAnchor = [];
   if (xiaoData.length > 0) monthsForAnchor = xiaoData.map(t => t.month.replace(/\s+/g,''));
+
+  function alignToMonths(rows, months) {
+    // rows 是 {month, leads, ...}[]，按月对齐到 months 轴，缺失返回 null
+    let byMonth = {};
+    rows.forEach(r => { byMonth[r.month.replace(/\s+/g,'')] = r.leads || 0; });
+    return months.map(m => (m in byMonth) ? byMonth[m] : null);
+  }
+  let xiaoLeadsArr = alignToMonths(xiaoData, monthsForAnchor);
+  let liuliuLeadsArr = alignToMonths(liuliuData, monthsForAnchor);
   
   container.innerHTML = `
     <div class="chart-card"><h3>📊 线索数 & 签单数 月度趋势</h3><canvas id="chart-leads-orders"></canvas></div>
@@ -1567,8 +1578,8 @@ function renderSummaryCharts() {
     if (xiaoData.length > 0) {
       myCharts.anchorCompare = new Chart(document.getElementById('chart-anchor-compare'), {
         type: 'bar', data: { labels: monthsForAnchor, datasets: [
-          { label: '潇潇', data: xiaoData.map(t => t.leads||0), backgroundColor: '#1677ff' },
-          { label: '六六', data: liuliuData.map(t => t.leads||0), backgroundColor: '#52c41a' }
+          { label: '潇潇', data: xiaoLeadsArr, backgroundColor: '#1677ff' },
+          { label: '六六', data: liuliuLeadsArr, backgroundColor: '#52c41a' }
         ]},
         options: { responsive: true, maintainAspectRatio: false,
           plugins: { legend: { position: 'bottom' } },

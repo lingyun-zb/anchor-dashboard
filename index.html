@@ -1386,6 +1386,7 @@ const SUMMARY_COLS = [
   {key:'leadOrderRate', label:'签单率', w:'60px', calc:true, fmt:'pct'},
   {key:'totalCost', label:'总花费', w:'80px', calc:false, fmt:'money'},
   {key:'leadCost', label:'线索成本', w:'70px', calc:true, fmt:'money1'},
+  {key:'validCost', label:'有效成本', w:'70px', calc:true, fmt:'money1'},
   {key:'roi', label:'ROI', w:'60px', calc:true, fmt:'pct2'},
 ];
 
@@ -1622,6 +1623,7 @@ function renderSummaryTable(data) {
       r.leadToStore = r.leads > 0 ? r.storeVisits / r.leads : 0;
       r.leadOrderRate = r.leads > 0 ? r.orders / r.leads : 0;
       r.leadCost = r.leads > 0 ? r.totalCost / r.leads : 0;
+      r.validCost = r.validLeads > 0 ? r.totalCost / r.validLeads : 0;
       r.roi = r.totalCost > 0 ? r.orderValue / r.totalCost : 0;
     });
 
@@ -1711,13 +1713,14 @@ function buildYearlyTotalSection() {
     let leadToStore = leads > 0 ? storeVisits / leads : 0;
     let leadOrderRate = leads > 0 ? orders / leads : 0;
     let leadCost = leads > 0 ? totalCost / leads : 0;
+    let validCost = validLeads > 0 ? totalCost / validLeads : 0;
     let roi = totalCost > 0 ? orderValue / totalCost : 0;
 
     computed[a] = {
       month: '全年', anchor: a,
       leads, validLeads, validRate, totalReceipts, storeVisits,
       leadToStore, orders, orderValue, leadOrderRate,
-      totalCost, leadCost, roi
+      totalCost, leadCost, validCost, roi
     };
   });
 
@@ -1731,6 +1734,7 @@ function buildYearlyTotalSection() {
     total.leadToStore = total.leads > 0 ? total.storeVisits / total.leads : 0;
     total.leadOrderRate = total.leads > 0 ? total.orders / total.leads : 0;
     total.leadCost = total.leads > 0 ? total.totalCost / total.leads : 0;
+    total.validCost = total.validLeads > 0 ? total.totalCost / total.validLeads : 0;
     total.roi = total.totalCost > 0 ? total.orderValue / total.totalCost : 0;
     computed['总计'] = total;
   }

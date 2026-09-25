@@ -9,24 +9,46 @@
 <title>主播统计表</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
+:root {
+  --primary: #1677ff;
+  --primary-dark: #0958d9;
+  --primary-light: #e6f0ff;
+  --success: #52c41a;
+  --danger: #ff4d4f;
+  --warning: #faad14;
+  --purple: #722ed1;
+  --bg: #f5f7fa;
+  --card-bg: #ffffff;
+  --text: #1f1f1f;
+  --text-2: #555;
+  --text-3: #888;
+  --border: #f0f0f0;
+  --border-2: #e8e8e8;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.05);
+  --shadow-card: 0 2px 10px rgba(0,0,0,.06);
+  --shadow-hover: 0 6px 18px rgba(0,0,0,.1);
+}
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f7fa; color: #333; min-height: 100vh; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
 .header { background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%); color: #fff; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; box-shadow: 0 4px 12px rgba(22,119,255,.25); }
 .header h1 { font-size: 22px; font-weight: 700; letter-spacing: .3px; text-shadow: 0 1px 2px rgba(0,0,0,.1); }
 .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-.btn { padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .2s; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,.08); }
+.btn { padding: 8px 16px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 600; transition: all .2s; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,.08); }
 .btn:active { transform: translateY(1px); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
-.btn-primary { background: #fff; color: #1677ff; }
-.btn-primary:hover { background: #f0f5ff; box-shadow: 0 4px 8px rgba(22,119,255,.2); }
+.btn-primary { background: #fff; color: var(--primary); }
+.btn-primary:hover { background: var(--primary-light); box-shadow: 0 4px 8px rgba(22,119,255,.2); }
 .btn-outline { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.45); }
 .btn-outline:hover { background: rgba(255,255,255,.22); }
 .btn-sm { padding: 5px 12px; font-size: 12px; }
 .btn-blue { background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%); color: #fff; }
-.btn-blue:hover { background: linear-gradient(135deg, #4096ff 0%, #1677ff 100%); box-shadow: 0 4px 10px rgba(22,119,255,.3); }
+.btn-blue:hover { background: linear-gradient(135deg, #4096ff 0%, #1677ff 100%); box-shadow: 0 4px 12px rgba(22,119,255,.35); transform: translateY(-1px); }
 .btn-green { background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%); color: #fff; }
-.btn-green:hover { background: linear-gradient(135deg, #73d13d 0%, #52c41a 100%); box-shadow: 0 4px 10px rgba(82,196,26,.3); }
+.btn-green:hover { background: linear-gradient(135deg, #73d13d 0%, #52c41a 100%); box-shadow: 0 4px 12px rgba(82,196,26,.35); transform: translateY(-1px); }
 
 .tabs { display: flex; background: #fff; padding: 10px 28px 0; gap: 8px; overflow-x: auto; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
 .tab { padding: 12px 22px; cursor: pointer; font-size: 14px; font-weight: 600; color: #666; border-radius: 10px 10px 0 0; transition: all .2s; white-space: nowrap; position: relative; }
@@ -57,14 +79,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC"
 
 /* Charts area */
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
-.chart-card { background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,.08); border: 1px solid #f0f0f0; }
+.chart-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 18px; box-shadow: var(--shadow-card); border: 1px solid var(--border); transition: box-shadow .2s; }
+.chart-card:hover { box-shadow: var(--shadow-hover); }
 .chart-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #333; }
 .chart-card canvas { max-height: 280px; }
 
 /* KPI cards with trend */
 .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 18px; }
-.kpi-card { background: #fff; border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.08); position: relative; overflow: hidden; border: 1px solid #f0f0f0; transition: transform .15s, box-shadow .15s; }
-.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.1); }
+.kpi-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 16px 18px; box-shadow: var(--shadow-card); position: relative; overflow: hidden; border: 1px solid var(--border); transition: transform .2s, box-shadow .2s; }
+.kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
 .kpi-card .kpi-label { font-size: 13px; color: #888; margin-bottom: 6px; font-weight: 500; }
 .kpi-card .kpi-value { font-size: 26px; font-weight: 800; }
 .kpi-card .kpi-trend { font-size: 12px; margin-top: 4px; display: flex; align-items: center; gap: 4px; font-weight: 600; }
@@ -81,12 +104,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC"
 .kpi-purple .kpi-value { color: #722ed1; }
 .kpi-purple .kpi-bar { background: linear-gradient(90deg, #722ed1 0%, #b37feb 100%); }
 
-.table-wrap { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.08); overflow: auto; max-height: calc(100vh - 240px); border: 1px solid #f0f0f0; }
+.table-wrap { background: var(--card-bg); border-radius: var(--radius-md); box-shadow: var(--shadow-card); overflow: auto; max-height: calc(100vh - 240px); border: 1px solid var(--border); }
 table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; min-width: 900px; }
 thead { position: sticky; top: 0; z-index: 2; }
-th { background: linear-gradient(180deg, #fafafa 0%, #f0f0f0 100%); padding: 12px 8px; text-align: center; font-weight: 700; color: #555; border-bottom: 2px solid #e0e0e0; white-space: nowrap; }
-td { padding: 8px; text-align: center; border-bottom: 1px solid #f0f0f0; }
-tr:hover td { background: #f5f8ff; }
+th { background: linear-gradient(180deg, #f7faff 0%, #eef2f7 100%); padding: 12px 8px; text-align: center; font-weight: 700; color: var(--text-2); border-bottom: 2px solid var(--primary); white-space: nowrap; font-size: 12.5px; letter-spacing: .2px; }
+td { padding: 9px 8px; text-align: center; border-bottom: 1px solid var(--border); transition: background .15s; }
+tr:hover td { background: var(--primary-light); }
 tr.total-row:hover td { background: #fff4d6; }
 td input { width: 100%; border: 1px solid transparent; padding: 5px 6px; text-align: center; font-size: 13px; border-radius: 6px; background: transparent; transition: all .15s; }
 td input:hover { border-color: #d9d9d9; background: #fff; }
@@ -165,7 +188,8 @@ td.no-edit { font-weight: 600; color: #333; }
 
 /* Quarter analysis */
 .quarter-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
-.quarter-card { background: #fff; border-radius: 12px; padding: 22px; box-shadow: 0 2px 8px rgba(0,0,0,.08); border: 1px solid #f0f0f0; }
+.quarter-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 22px; box-shadow: var(--shadow-card); border: 1px solid var(--border); transition: box-shadow .2s; }
+.quarter-card:hover { box-shadow: var(--shadow-hover); }
 .quarter-card.q2 { border-left: 5px solid #1677ff; }
 .quarter-card.q3 { border-left: 5px solid #ff4d4f; }
 .quarter-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 16px; color: #1f1f1f; }
@@ -183,7 +207,8 @@ td.no-edit { font-weight: 600; color: #333; }
 
 /* Anchor compare */
 .anchor-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
-.anchor-card { background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,.08); text-align: center; border: 1px solid #f0f0f0; }
+.anchor-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 18px; box-shadow: var(--shadow-card); text-align: center; border: 1px solid var(--border); transition: box-shadow .2s, transform .2s; }
+.anchor-card:hover { box-shadow: var(--shadow-hover); }
 .anchor-card .ac-name { font-size: 17px; font-weight: 800; margin-bottom: 12px; }
 .anchor-card .ac-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
 .anchor-card .ac-label { color: #888; }
@@ -282,25 +307,27 @@ td.no-edit { font-weight: 600; color: #333; }
   z-index: 99999; display: flex; align-items: center; justify-content: center;
 }
 #gate-box {
-  background: #fff; border-radius: 16px; padding: 36px 40px; text-align: center;
-  box-shadow: 0 8px 32px rgba(0,0,0,.25); max-width: 320px; width: 88%;
+  background: #fff; border-radius: var(--radius-lg); padding: 38px 42px; text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,.25); max-width: 330px; width: 88%;
+  animation: gatePop .4s cubic-bezier(.2,.8,.2,1);
 }
-#gate-box h2 { font-size: 20px; color: #333; margin-bottom: 6px; font-weight: 700; }
+@keyframes gatePop { from { opacity: 0; transform: translateY(12px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+#gate-box h2 { font-size: 21px; color: #333; margin-bottom: 6px; font-weight: 700; }
 #gate-box .gate-sub { font-size: 13px; color: #999; margin-bottom: 22px; }
 #gate-input {
-  width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 10px;
+  width: 100%; padding: 13px 16px; border: 2px solid #e8e8e8; border-radius: var(--radius-sm);
   font-size: 20px; text-align: center; letter-spacing: 6px; outline: none;
-  transition: border-color .2s; -webkit-text-security: disc;
+  transition: all .2s; -webkit-text-security: disc;
 }
-#gate-input:focus { border-color: #1677ff; }
+#gate-input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(22,119,255,.12); }
 #gate-btn {
-  width: 100%; margin-top: 14px; padding: 12px; border: none; border-radius: 10px;
+  width: 100%; margin-top: 14px; padding: 13px; border: none; border-radius: var(--radius-sm);
   background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%); color: #fff;
   font-size: 15px; font-weight: 600; cursor: pointer; transition: all .2s;
 }
-#gate-btn:hover { box-shadow: 0 4px 12px rgba(22,119,255,.35); }
+#gate-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(22,119,255,.35); }
 #gate-btn:active { transform: translateY(1px); }
-#gate-err { color: #ff4d4f; font-size: 13px; margin-top: 10px; min-height: 18px; }
+#gate-err { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 18px; }
 </style>
 </head>
 <body>
@@ -592,8 +619,7 @@ let _sumDirty = false;  // 本地有未上传的月度数据
 
 function saveDuration() {
   localStorage.setItem('anchor_duration_data', JSON.stringify(DURATION_DATA));
-  recalcSummary();
-
+  // 注意：此处不再调用 recalcSummary / saveSummary，避免时长编辑覆盖他人正在编辑的月度数据
   _durDirty = true;
   if (_saveDurTimer) clearTimeout(_saveDurTimer);
   _saveDurPending = true;
@@ -658,8 +684,6 @@ let _syncTimer = null;
 // 从云端拉取最新数据；若与本地有差异则重渲染。silent=true 时不弹提示
 async function syncFromCloud(silent) {
   if (_syncing) return;
-  // 有未上传的本地数据时跳过，避免覆盖正在编辑的内容
-  if (_durDirty || _sumDirty) return;
   // 用户正在编辑输入框时跳过本次，避免打断输入（下个周期会重试）
   let ae = document.activeElement;
   if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.tagName === 'TEXTAREA')) return;
@@ -669,25 +693,34 @@ async function syncFromCloud(silent) {
     // 直接读云端，不走 loadData（避免触发"本地保护"逻辑导致额外上传）
     let durResult = await ghRead('data/duration.json');
     if (durResult && durResult.data) {
-      let cloudStr = JSON.stringify(durResult.data);
-      if (cloudStr !== JSON.stringify(DURATION_DATA)) {
-        DURATION_DATA = durResult.data;
+      // 本地有未保存修改时，只更新 SHA（保证下次保存不冲突），不覆盖本地数据
+      if (_durDirty) {
         _durSha = durResult.sha;
-        normalizeDurationDates();
-        normalizeTimeFields();
-        localStorage.setItem('anchor_duration_data', JSON.stringify(DURATION_DATA));
-        changed = true;
+      } else {
+        let cloudStr = JSON.stringify(durResult.data);
+        if (cloudStr !== JSON.stringify(DURATION_DATA)) {
+          DURATION_DATA = durResult.data;
+          _durSha = durResult.sha;
+          normalizeDurationDates();
+          normalizeTimeFields();
+          localStorage.setItem('anchor_duration_data', JSON.stringify(DURATION_DATA));
+          changed = true;
+        }
       }
     }
     let sumResult = await ghRead('data/summary.json');
     if (sumResult && sumResult.data) {
-      let cloudStr = JSON.stringify(sumResult.data);
-      if (cloudStr !== JSON.stringify(SUMMARY_DATA)) {
-        SUMMARY_DATA = sumResult.data;
+      if (_sumDirty) {
         _sumSha = sumResult.sha;
-        ensureAugustData();
-        localStorage.setItem('anchor_summary_data', JSON.stringify(SUMMARY_DATA));
-        changed = true;
+      } else {
+        let cloudStr = JSON.stringify(sumResult.data);
+        if (cloudStr !== JSON.stringify(SUMMARY_DATA)) {
+          SUMMARY_DATA = sumResult.data;
+          _sumSha = sumResult.sha;
+          ensureAugustData();
+          localStorage.setItem('anchor_summary_data', JSON.stringify(SUMMARY_DATA));
+          changed = true;
+        }
       }
     }
     if (changed) {
@@ -1962,26 +1995,6 @@ function updateSummary(input) {
   }
   saveSummary();
   renderSummary();
-}
-
-function recalcSummary() {
-  let months = [...new Set(SUMMARY_DATA.map(r => r.month))];
-  months.forEach(month => {
-    let totalIdx = SUMMARY_DATA.findIndex(r => r.month === month && r.anchor === '总计');
-    if (totalIdx < 0) return;
-    let rows = SUMMARY_DATA.filter(r => r.month === month && r.anchor !== '总计');
-    if (rows.length === 0) return;
-    let total = { month, anchor: '总计', leads:0, validLeads:0, totalReceipts:0, storeVisits:0, orders:0, orderValue:0, totalCost:0 };
-    rows.forEach(r => {
-      total.leads+=r.leads||0; total.validLeads+=r.validLeads||0; total.totalReceipts+=r.totalReceipts||0;
-      total.storeVisits+=r.storeVisits||0; total.orders+=r.orders||0; total.orderValue+=r.orderValue||0; total.totalCost+=r.totalCost||0;
-    });
-    if (total.leads > 0) { total.validRate=total.validLeads/total.leads; total.leadToStore=total.storeVisits/total.leads; total.leadOrderRate=total.orders/total.leads; total.leadCost=total.totalCost/total.leads; }
-    if (total.validLeads > 0) { total.validToStore=total.storeVisits/total.validLeads; total.validOrderRate=total.orders/total.validLeads; total.validCost=total.totalCost/total.validLeads; }
-    if (total.totalCost > 0) total.roi=total.orderValue/total.totalCost;
-    Object.assign(SUMMARY_DATA[totalIdx], total);
-  });
-  saveSummary();
 }
 
 function destroyCharts() {

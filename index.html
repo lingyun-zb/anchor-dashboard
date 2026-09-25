@@ -600,7 +600,7 @@ async function loadSummary() {
     ensureAugustData();
     let requiredMonths = ['4', '5', '6', '7'];
     let hasAllMonths = requiredMonths.every(m =>
-      SUMMARY_DATA.some(r => r.anchor === '总计' && r.month && r.month.includes(m))
+      SUMMARY_DATA.some(r => r.anchor === '总计' && parseMonthNum(r.month) === parseInt(m))
     );
     if (!hasAllMonths) {
       SUMMARY_DATA = JSON.parse(JSON.stringify(SUMMARY_FALLBACK));
@@ -776,7 +776,7 @@ function calcDuration() {
   let [sh, sm] = s.split(':').map(Number);
   let [eh, em] = e.split(':').map(Number);
   let h = (eh*60+em - sh*60-sm) / 60;
-  if (h <= 0) h += 24;
+  if (h < 0) h += 24;
   document.getElementById('qf-duration').textContent = `时长: ${h.toFixed(2)}h`;
 }
 
@@ -829,7 +829,7 @@ function addDurationFromQuick() {
   let [sh, sm] = start.split(':').map(Number);
   let [eh, em] = end.split(':').map(Number);
   let dur = (eh*60+em - sh*60-sm) / 60;
-  if (dur <= 0) dur += 24;
+  if (dur < 0) dur += 24;
   let dateStr = parseDateToYMD(dateVal, new Date().getFullYear()) || dateVal;
   
   let rec = { date: dateStr, anchor: anchor, time: timeStr, start_time: start, end_time: end, duration: parseFloat(dur.toFixed(2)) };
@@ -1351,7 +1351,7 @@ function autoCalcDuration(idx) {
     let [sh, sm] = s.split(':').map(Number);
     let [eh, em] = e.split(':').map(Number);
     let dur = (eh * 60 + em - sh * 60 - sm) / 60;
-    if (dur <= 0) dur += 24;
+    if (dur < 0) dur += 24;
     r.duration = parseFloat(dur.toFixed(2));
     r.time = s + '-' + e;
   }
@@ -1720,7 +1720,7 @@ function renderSummaryTable(data) {
           let inputVal;
           if (raw === 0) inputVal = '0';
           else if (raw == null) inputVal = '';
-          else if (typeof raw === 'number' && c.fmt === 'money') inputVal = Math.round(raw).toString();
+          else if (typeof raw === 'number' && c.fmt === 'money') inputVal = raw.toString();
           else inputVal = String(raw);
           html += `<td><input value="${esc(inputVal)}" data-sidx="${idx}" data-field="${c.key}" onchange="updateSummary(this)" onfocus="this.select()"></td>`;
         }
@@ -1952,7 +1952,8 @@ function editSummaryMetric(sidx, field, el) {
   input.onblur = function() {
     let v = input.value.trim();
     let numFields = ['leads','validLeads','totalReceipts','storeVisits','orders','orderValue','totalCost'];
-    if (numFields.includes(field)) v = parseInt(v) || 0;
+    let moneyFields = ['orderValue','totalCost'];
+    if (numFields.includes(field)) v = moneyFields.includes(field) ? (parseFloat(v) || 0) : (parseInt(v) || 0);
     SUMMARY_DATA[sidx][field] = v;
     updateSummaryCalc(sidx);
     saveSummary();
@@ -1976,7 +1977,8 @@ function updateSummary(input) {
   let field = input.dataset.field;
   let val = input.value.trim();
   let numFields = ['leads','validLeads','totalReceipts','storeVisits','orders','orderValue','totalCost'];
-  if (numFields.includes(field)) val = parseInt(val) || 0;
+  let moneyFields = ['orderValue','totalCost'];
+  if (numFields.includes(field)) val = moneyFields.includes(field) ? (parseFloat(val) || 0) : (parseInt(val) || 0);
   SUMMARY_DATA[idx][field] = val;
   let r = SUMMARY_DATA[idx];
   updateSummaryCalc(idx);

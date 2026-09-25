@@ -414,6 +414,7 @@ if(sessionStorage.getItem('_gk')==='1'){
       <select id="filter-summary-anchor" onchange="renderSummary()"><option value="">全部</option><option>潇潇</option><option>六六</option><option>总计</option></select>
       <button class="btn btn-sm" onclick="toggleAllSummaryMonths()" style="margin-left:auto;border-color:#d9e8ff;color:#1677ff;background:#fff" id="btn-toggle-summary">📂 全部折叠</button>
       <button class="btn btn-sm" onclick="addSummaryMonth()" style="border-color:#52c41a;color:#fff;background:#52c41a">＋ 添加月份</button>
+      <span style="font-size:12px;color:#999;margin-left:12px" id="summary-count"></span>
     </div>
 
     <div class="kpi-row" id="summary-kpi-row"></div>
@@ -1281,7 +1282,7 @@ function parseDateToYMD(dateStr, defaultYear) {
 function ensureMonthData(monthNum) {
   let label = monthNum + '月';
   ['潇潇', '六六', '总计'].forEach(anchor => {
-    let exists = SUMMARY_DATA.find(r => r.month.includes(String(monthNum)) && r.anchor === anchor);
+    let exists = SUMMARY_DATA.find(r => parseMonthNum(r.month) === monthNum && r.anchor === anchor);
     if (!exists) SUMMARY_DATA.push({"month": label, "anchor": anchor, "leads": 0, "validLeads": 0, "validRate": 0, "totalReceipts": 0, "storeVisits": 0, "leadToStore": 0, "validToStore": 0, "orders": 0, "orderValue": 0, "leadOrderRate": 0, "validOrderRate": 0, "totalCost": 0, "leadCost": 0, "validCost": 0, "roi": 0});
   });
 }
@@ -1366,9 +1367,11 @@ function deleteRow(idx) {
 
 function updateCounts() {
   let filtered = getFilteredDuration();
-  let totalH = filtered.reduce((s, r) => s + r.duration, 0);
-  document.getElementById('duration-count').textContent = `${filtered.length} 条记录 · 合计 ${totalH.toFixed(1)}h`;
-  document.getElementById('summary-count').textContent = `${SUMMARY_DATA.length} 条汇总`;
+  let totalH = filtered.reduce((s, r) => s + (r.duration||0), 0);
+  let dc = document.getElementById('duration-count');
+  if (dc) dc.textContent = `${filtered.length} 条记录 · 合计 ${totalH.toFixed(1)}h`;
+  let sc = document.getElementById('summary-count');
+  if (sc) sc.textContent = `${SUMMARY_DATA.length} 条汇总`;
 }
 
 // ===== SUMMARY =====
@@ -1992,7 +1995,7 @@ function renderQuarterly() {
   let c = document.getElementById('quarterly-content');
   
   let q2Months = ['4','5','6'];
-  let q3Months = ['7','8'];
+  let q3Months = ['7','8','9'];
   
   let q2Total = aggregateQuarter(q2Months, 'Q2');
   let q3Total = aggregateQuarter(q3Months, 'Q3');
@@ -2002,24 +2005,123 @@ function renderQuarterly() {
   let q3Xiao = aggregateQuarterAnchor(q3Months, 'Q3', '潇潇');
   let q3Liu = aggregateQuarterAnchor(q3Months, 'Q3', '六六');
   
+  // 主播季度总时长（来自 DURATION_DATA，与时长 tab 同口径）
+  let durQ2Xiao = aggregateAnchorQuarterDuration(q2Months, '潇潇');
+  let durQ2Liu  = aggregateAnchorQuarterDuration(q2Months, '六六');
+  let durQ3Xiao = aggregateAnchorQuarterDuration(q3Months, '潇潇');
+  let durQ3Liu  = aggregateAnchorQuarterDuration(q3Months, '六六');
+  let durQ2Total = durQ2Xiao + durQ2Liu;
+  let durQ3Total = durQ3Xiao + durQ3Liu;
+  
+  let durHtml = renderQuarterDurationSection(mode, q2Months, q3Months, durQ2Xiao, durQ2Liu, durQ3Xiao, durQ3Liu, durQ2Total, durQ3Total);
+  
   if (mode === 'Q2Q3') {
-    c.innerHTML = renderQCompare(q2Total, q3Total, q2Xiao, q2Liu, q3Xiao, q3Liu);
+    c.innerHTML = durHtml + renderQCompare(q2Total, q3Total, q2Xiao, q2Liu, q3Xiao, q3Liu);
   } else if (mode === 'Q2') {
-    c.innerHTML = renderSingleQ(q2Total, q2Xiao, q2Liu, 'Q2（4-6月）');
+    c.innerHTML = durHtml + renderSingleQ(q2Total, q2Xiao, q2Liu, 'Q2（4-6月）');
   } else {
-    c.innerHTML = renderSingleQ(q3Total, q3Xiao, q3Liu, 'Q3（7-9月）');
+    c.innerHTML = durHtml + renderSingleQ(q3Total, q3Xiao, q3Liu, 'Q3（7-9月）');
   }
   
   if (!isMobile() && mode === 'Q2Q3') {
     setTimeout(() => {
       destroyCharts();
       renderQuarterCharts(q2Total, q3Total, q2Xiao, q3Xiao, q2Liu, q3Liu);
+      renderQuarterDurationChart(durQ2Xiao, durQ2Liu, durQ3Xiao, durQ3Liu);
     }, 100);
   }
 }
 
+// 季度总时长板块（KPI + 环比）
+function renderQuarterDurationSection(mode, q2Months, q3Months, q2X, q2L, q3X, q3L, q2Total, q3Total) {
+  let title = mode === 'Q2Q3' ? '⏱ 主播季度总时长对比' : (mode === 'Q2' ? '⏱ Q2 主播总时长' : '⏱ Q3 主播总时长');
+  let q2Label = 'Q2（4-6月）';
+  let q3Label = 'Q3（7-9月）';
+  
+  if (mode === 'Q2Q3') {
+    return `
+      <div class="section-title">${title}</div>
+      <div class="kpi-row">
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-label">潇潇 ${q2Label}</div>
+          <div class="kpi-value">${q2X.toFixed(1)}h</div>
+          <div class="kpi-bar" style="width:${Math.min(100,q2X/3)}%"></div>
+        </div>
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-label">潇潇 ${q3Label}</div>
+          <div class="kpi-value">${q3X.toFixed(1)}h</div>
+          <div class="kpi-trend">${deltaStr(q3X, q2X)}</div>
+          <div class="kpi-bar" style="width:${Math.min(100,q3X/3)}%"></div>
+        </div>
+        <div class="kpi-card kpi-green">
+          <div class="kpi-label">六六 ${q2Label}</div>
+          <div class="kpi-value">${q2L.toFixed(1)}h</div>
+          <div class="kpi-bar" style="width:${Math.min(100,q2L/3)}%"></div>
+        </div>
+        <div class="kpi-card kpi-green">
+          <div class="kpi-label">六六 ${q3Label}</div>
+          <div class="kpi-value">${q3L.toFixed(1)}h</div>
+          <div class="kpi-trend">${deltaStr(q3L, q2L)}</div>
+          <div class="kpi-bar" style="width:${Math.min(100,q3L/3)}%"></div>
+        </div>
+        <div class="kpi-card kpi-purple">
+          <div class="kpi-label">合计 ${q2Label}</div>
+          <div class="kpi-value">${q2Total.toFixed(1)}h</div>
+        </div>
+        <div class="kpi-card kpi-purple">
+          <div class="kpi-label">合计 ${q3Label}</div>
+          <div class="kpi-value">${q3Total.toFixed(1)}h</div>
+          <div class="kpi-trend">${deltaStr(q3Total, q2Total)}</div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:18px">
+        <h3>📊 主播 Q2 vs Q3 时长对比</h3>
+        <canvas id="chart-quarter-duration"></canvas>
+      </div>
+    `;
+  } else {
+    let isQ2 = mode === 'Q2';
+    let xH = isQ2 ? q2X : q3X;
+    let lH = isQ2 ? q2L : q3L;
+    let tH = isQ2 ? q2Total : q3Total;
+    let label = isQ2 ? q2Label : q3Label;
+    return `
+      <div class="section-title">${title}</div>
+      <div class="kpi-row">
+        <div class="kpi-card kpi-blue"><div class="kpi-label">潇潇 ${label}</div><div class="kpi-value">${xH.toFixed(1)}h</div><div class="kpi-bar" style="width:${Math.min(100,xH/3)}%"></div></div>
+        <div class="kpi-card kpi-green"><div class="kpi-label">六六 ${label}</div><div class="kpi-value">${lH.toFixed(1)}h</div><div class="kpi-bar" style="width:${Math.min(100,lH/3)}%"></div></div>
+        <div class="kpi-card kpi-purple"><div class="kpi-label">合计 ${label}</div><div class="kpi-value">${tH.toFixed(1)}h</div></div>
+      </div>
+    `;
+  }
+}
+
+// 季度时长柱状图
+function renderQuarterDurationChart(q2X, q2L, q3X, q3L) {
+  let canvas = document.getElementById('chart-quarter-duration');
+  if (!canvas) return;
+  myCharts.quarterDuration = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: ['潇潇 Q2', '潇潇 Q3', '六六 Q2', '六六 Q3'],
+      datasets: [{
+        label: '直播时长 (小时)',
+        data: [q2X, q3X, q2L, q3L],
+        backgroundColor: ['rgba(22,119,255,0.7)','rgba(22,119,255,0.4)','rgba(82,196,26,0.7)','rgba(82,196,26,0.4)'],
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, title: { display: true, text: '时长 (小时)' } } }
+    }
+  });
+}
+
 function aggregateQuarter(months, label) {
-  let rows = SUMMARY_DATA.filter(r => r.anchor === '总计' && months.some(m => r.month.includes(m)));
+  let rows = SUMMARY_DATA.filter(r => r.anchor === '总计' && months.some(m => parseMonthNum(r.month) === parseInt(m)));
   let t = { leads:0, validLeads:0, totalReceipts:0, storeVisits:0, orders:0, orderValue:0, totalCost:0 };
   rows.forEach(r => {
     t.leads+=r.leads||0; t.validLeads+=r.validLeads||0; t.totalReceipts+=r.totalReceipts||0;
@@ -2033,7 +2135,7 @@ function aggregateQuarter(months, label) {
 }
 
 function aggregateQuarterAnchor(months, label, anchor) {
-  let rows = SUMMARY_DATA.filter(r => r.anchor === anchor && months.some(m => r.month.includes(m)));
+  let rows = SUMMARY_DATA.filter(r => r.anchor === anchor && months.some(m => parseMonthNum(r.month) === parseInt(m)));
   let t = { leads:0, validLeads:0, totalReceipts:0, storeVisits:0, orders:0, orderValue:0, totalCost:0 };
   rows.forEach(r => {
     t.leads+=r.leads||0; t.validLeads+=r.validLeads||0; t.totalReceipts+=r.totalReceipts||0;
@@ -2043,6 +2145,18 @@ function aggregateQuarterAnchor(months, label, anchor) {
   if (t.validLeads>0) { t.validToStore=t.storeVisits/t.validLeads; t.validOrderRate=t.orders/t.validLeads; t.validCost=t.totalCost/t.validLeads; }
   if (t.totalCost>0) t.roi=t.orderValue/t.totalCost;
   return t;
+}
+
+// 按季度月份聚合某主播的直播总时长（与时长 tab 口径一致，复用 extractMonth）
+function aggregateAnchorQuarterDuration(months, anchor) {
+  let monthNums = months.map(m => parseInt(m));
+  let total = 0;
+  DURATION_DATA.forEach(r => {
+    if (anchor && r.anchor !== anchor) return;
+    let mo = extractMonth(r.date);
+    if (monthNums.includes(mo)) total += (r.duration || 0);
+  });
+  return parseFloat(total.toFixed(1));
 }
 
 function deltaStr(a, b) {
@@ -2059,15 +2173,19 @@ function renderQCompare(q2, q3, q2X, q2L, q3X, q3L) {
   let roiDelta = q3.roi - q2.roi;
   let analysis = '';
   
-  if (leadsDelta > 0) {
+  if (q2.leads > 0 && leadsDelta > 0) {
     analysis = `Q3线索量相比Q2<span class="highlight">增长${(leadsDelta/q2.leads*100).toFixed(0)}%</span>，`;
-  } else if (leadsDelta < 0) {
+  } else if (q2.leads > 0 && leadsDelta < 0) {
     analysis = `Q3线索量相比Q2<span class="highlight">下降${Math.abs(leadsDelta/q2.leads*100).toFixed(0)}%</span>，`;
+  } else {
+    analysis = `Q3线索量${q3.leads}条，`;
   }
   if (q3.orders > q2.orders) {
     analysis += `签单数从${q2.orders}单<span class="good">提升至${q3.orders}单</span>；`;
+  } else if (q3.orders < q2.orders) {
+    analysis += `签单数从${q2.orders}单<span class="highlight">下降至${q3.orders}单</span>；`;
   } else {
-    analysis += `签单数${q3.orders}单，`;
+    analysis += `签单数持平为${q3.orders}单，`;
   }
   analysis += `ROI从${q2.roi.toFixed(2)}变为${q3.roi.toFixed(2)}。`;
   

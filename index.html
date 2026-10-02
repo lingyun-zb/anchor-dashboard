@@ -122,6 +122,7 @@ th { background: linear-gradient(180deg, rgba(37,99,235,.12) 0%, rgba(139,92,246
 td { padding: 10px 8px; text-align: center; border-bottom: 1px solid rgba(37,99,235,.08); transition: background .15s; }
 tbody tr:nth-child(even) td { background: rgba(37,99,235,.025); }
 tbody tr:hover td { background: rgba(37,99,235,.08); }
+tbody tr { content-visibility: auto; contain-intrinsic-size: auto 42px; }
 tr.total-row:hover td { background: rgba(245,158,11,.12); }
 td input { width: 100%; border: 1px solid transparent; padding: 6px 7px; text-align: center; font-size: 13px; border-radius: 8px; background: transparent; transition: all .15s; }
 td input:hover { border-color: rgba(37,99,235,.2); background: rgba(255,255,255,.7); }
@@ -139,7 +140,7 @@ td.no-edit { font-weight: 600; color: var(--text); }
 .calc-dur { display: flex; align-items: center; justify-content: center; height: 38px; background: linear-gradient(135deg, rgba(37,99,235,.08) 0%, rgba(6,182,212,.08) 100%); border-radius: 10px; color: var(--primary); font-weight: 800; font-size: 15px; border: 1px solid rgba(37,99,235,.15); }
 
 /* Month collapsible sections */
-.month-section { margin-bottom: 12px; }
+.month-section { margin-bottom: 12px; content-visibility: auto; contain-intrinsic-size: auto 800px; }
 .month-header { display: flex; align-items: center; gap: 10px; padding: 13px 18px; background: linear-gradient(135deg, rgba(255,255,255,.8) 0%, rgba(238,242,255,.8) 100%); backdrop-filter: blur(8px); border-radius: var(--radius-md) var(--radius-md) 0 0; cursor: pointer; user-select: none; font-size: 14px; font-weight: 700; color: var(--text); border: 1px solid var(--border); border-bottom: none; transition: all .15s; }
 .month-header:hover { background: linear-gradient(135deg, rgba(37,99,235,.08) 0%, rgba(139,92,246,.06) 100%); }
 .month-header .arrow { font-size: 12px; color: var(--primary); width: 20px; height: 20px; text-align: center; line-height: 20px; border-radius: 50%; background: rgba(37,99,235,.1); transition: transform .2s; }
@@ -258,7 +259,7 @@ td.no-edit { font-weight: 600; color: var(--text); }
   .table-wrap table { display: none; }
   .table-wrap .mobile-cards { display: block; }
 
-  .mob-card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-card); position: relative; border: 1px solid var(--border); }
+  .mob-card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-card); position: relative; border: 1px solid var(--border); content-visibility: auto; contain-intrinsic-size: auto 150px; }
   .mob-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .mob-card-header .date-tag { font-size: 14px; font-weight: 700; color: var(--text); }
   .mob-card-actions { display: flex; gap: 6px; }
@@ -273,7 +274,7 @@ td.no-edit { font-weight: 600; color: var(--text); }
   .mob-card-fields .field input:focus, .mob-card-fields .field select:focus { border-color: var(--primary); outline: none; background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
   .mob-empty { text-align: center; padding: 40px 20px; color: var(--text-3); font-size: 14px; background: var(--card-bg); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }
 
-  .mob-summary-card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-card); border: 1px solid var(--border); }
+  .mob-summary-card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-card); border: 1px solid var(--border); content-visibility: auto; contain-intrinsic-size: auto 180px; }
   .mob-summary-card .s-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .mob-summary-card .s-header .month-tag { font-size: 14px; }
   .mob-summary-card .s-header .anchor-name { font-size: 14px; font-weight: 700; color: var(--text); }

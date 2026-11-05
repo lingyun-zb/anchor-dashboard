@@ -2191,7 +2191,13 @@ function renderQuarterCharts(a, b, aX, bX, aL, bL, qA, qB) {
 }
 
 function aggregateQuarter(months, label) {
-  let rows = SUMMARY_DATA.filter(r => r.anchor === '总计' && months.some(m => parseMonthNum(r.month) === parseInt(m)));
+  let monthNums = months.map(m => parseInt(m));
+  // 优先用总计行；没有总计行则累加所有主播行（兼容早期月份）
+  let rows = SUMMARY_DATA.filter(r => r.anchor === '总计' && monthNums.some(m => parseMonthNum(r.month) === m));
+  let useAnchorRows = rows.length === 0;
+  if (useAnchorRows) {
+    rows = SUMMARY_DATA.filter(r => r.anchor !== '总计' && monthNums.some(m => parseMonthNum(r.month) === m));
+  }
   let t = { leads:0, validLeads:0, totalReceipts:0, storeVisits:0, orders:0, orderValue:0, totalCost:0 };
   rows.forEach(r => {
     t.leads+=r.leads||0; t.validLeads+=r.validLeads||0; t.totalReceipts+=r.totalReceipts||0;

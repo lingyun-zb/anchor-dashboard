@@ -62,7 +62,7 @@ table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nu
 .btn-green:hover { background: linear-gradient(135deg, #34d399 0%, #10b981 100%); box-shadow: 0 6px 16px rgba(16,185,129,.4); transform: translateY(-1px); }
 
 .tabs { display: flex; background: rgba(255,255,255,.6); backdrop-filter: blur(12px); padding: 12px 28px 0; gap: 6px; overflow-x: auto; box-shadow: 0 2px 12px rgba(37,99,235,.06); border-bottom: 1px solid rgba(37,99,235,.08); }
-.top-sticky { position: sticky; top: 0; z-index: 100; }
+.top-sticky { }
 .tab { padding: 12px 22px; cursor: pointer; font-size: 14px; font-weight: 600; color: #6b7280; border-radius: 12px 12px 0 0; transition: all .25s cubic-bezier(.4,0,.2,1); white-space: nowrap; position: relative; }
 .tab:hover { color: var(--primary); background: rgba(37,99,235,.08); }
 .tab.active { color: #fff; background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%); box-shadow: 0 4px 12px rgba(37,99,235,.25); }
@@ -116,14 +116,15 @@ table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nu
 .kpi-red .kpi-value { color: var(--danger); -webkit-text-fill-color: var(--danger); }
 .kpi-purple .kpi-value { color: var(--accent); -webkit-text-fill-color: var(--accent); }
 
-.table-wrap { background: #fff; border-radius: var(--radius-md); box-shadow: var(--shadow-card); border: 1px solid var(--border); }
+.table-wrap { background: #fff; border-radius: var(--radius-md); box-shadow: var(--shadow-card); overflow: auto; max-height: calc(100vh - 280px); border: 1px solid var(--border); }
 table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; min-width: 900px; }
-thead { position: sticky; top: var(--sticky-h, 140px); z-index: 99; }
+thead { position: sticky; top: 0; z-index: 2; background: #fff; }
+/* summary 和 month 表格不需要 sticky thead（每月最多 3 行，不需要固定表头） */
+.summary-month-body thead, .month-body thead { position: static; }
 th { background: linear-gradient(180deg, rgba(37,99,235,.12) 0%, rgba(139,92,246,.08) 100%); padding: 13px 10px; text-align: center; font-weight: 700; color: var(--primary-dark); border-bottom: 2px solid var(--primary); white-space: nowrap; font-size: 12.5px; letter-spacing: .3px; }
 td { padding: 10px 8px; text-align: center; border-bottom: 1px solid rgba(37,99,235,.08); transition: background .15s; }
 tbody tr:nth-child(even) td { background: rgba(37,99,235,.025); }
 tbody tr:hover td { background: rgba(37,99,235,.08); }
-tbody tr { content-visibility: auto; contain-intrinsic-size: auto 42px; }
 tr.total-row:hover td { background: rgba(245,158,11,.12); }
 td input { width: 100%; border: 1px solid transparent; padding: 6px 7px; text-align: center; font-size: 13px; border-radius: 8px; background: transparent; transition: all .15s; }
 td input:hover { border-color: rgba(37,99,235,.2); background: rgba(255,255,255,.7); }
@@ -148,7 +149,7 @@ td.no-edit { font-weight: 600; color: var(--text); }
 .month-header .count { font-weight: 500; font-size: 12px; color: var(--text-3); }
 .month-header .total-hours { margin-left: auto; font-weight: 700; font-size: 13px; color: var(--primary); background: rgba(37,99,235,.1); padding: 4px 14px; border-radius: 20px; }
 .month-header.current { border-left: 5px solid var(--primary); }
-.month-body { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius-md) var(--radius-md); overflow: hidden; }
+.month-body { background: #fff; border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius-md) var(--radius-md); overflow: hidden; }
 .month-body table { min-width: auto; }
 .month-body th { background: linear-gradient(180deg, rgba(37,99,235,.08) 0%, rgba(139,92,246,.04) 100%); }
 
@@ -166,7 +167,7 @@ td.no-edit { font-weight: 600; color: var(--text); }
 .summary-month-header .s-summary-item { font-size: 12px; color: var(--text-2); font-weight: 500; }
 .summary-month-header .s-summary-item b { color: var(--primary); font-weight: 800; }
 .summary-month-header.current { border-left: 5px solid var(--primary); }
-.summary-month-body { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius-md) var(--radius-md); overflow: hidden; }
+.summary-month-body { background: #fff; border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius-md) var(--radius-md); overflow: hidden; }
 .summary-month-body table { min-width: auto; }
 .summary-month-body th { background: linear-gradient(180deg, rgba(37,99,235,.08) 0%, rgba(139,92,246,.04) 100%); }
 
@@ -178,7 +179,7 @@ td.no-edit { font-weight: 600; color: var(--text); }
 .yearly-total-header .y-summary { margin-left: auto; display: flex; gap: 14px; align-items: center; }
 .yearly-total-header .y-summary-item { font-size: 12px; color: rgba(255,255,255,.85); font-weight: 500; }
 .yearly-total-header .y-summary-item b { font-weight: 800; }
-.yearly-total-body { background: var(--card-bg); backdrop-filter: blur(8px); border: 2px solid var(--primary); border-top: none; border-radius: 0 0 var(--radius-md) var(--radius-md); overflow: hidden; }
+.yearly-total-body { background: #fff; border: 2px solid var(--primary); border-top: none; border-radius: 0 0 var(--radius-md) var(--radius-md); overflow: hidden; }
 .yearly-total-body table { min-width: auto; }
 .yearly-total-body th { background: linear-gradient(180deg, rgba(37,99,235,.1) 0%, rgba(139,92,246,.06) 100%); font-weight: 700; color: var(--primary-dark); }
 
@@ -682,20 +683,14 @@ window.onload = async function() {
   populateSummaryMonthFilter();
   renderDuration();
   updateCounts();
-  updateStickyH();
   if (isMobile()) document.getElementById('mob-add-btn').style.display = 'block';
 };
 window.onresize = function() {
   destroyCharts();
-  updateStickyH();
   if (currentTab === 'duration') renderDuration();
   else if (currentTab === 'summary') renderSummary();
   else renderQuarterly();
 };
-function updateStickyH() {
-  let ts = document.querySelector('.top-sticky');
-  if (ts) document.documentElement.style.setProperty('--sticky-h', ts.offsetHeight + 'px');
-}
 // Flush pending API saves on close
 window.addEventListener('beforeunload', () => flushSaves());
 

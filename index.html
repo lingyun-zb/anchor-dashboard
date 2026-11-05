@@ -34,7 +34,7 @@
   --shadow-hover: 0 8px 24px rgba(37,99,235,.12), 0 4px 8px rgba(0,0,0,.05);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); background-attachment: fixed; color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); background-attachment: fixed; color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; overscroll-behavior-y: contain; }
 table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 ::selection { background: rgba(37,99,235,.15); }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -141,7 +141,7 @@ td.no-edit { font-weight: 600; color: var(--text); }
 
 /* Month collapsible sections */
 .month-section { margin-bottom: 12px; content-visibility: auto; contain-intrinsic-size: auto 800px; }
-.month-header { display: flex; align-items: center; gap: 10px; padding: 13px 18px; background: linear-gradient(135deg, rgba(255,255,255,.8) 0%, rgba(238,242,255,.8) 100%); backdrop-filter: blur(8px); border-radius: var(--radius-md) var(--radius-md) 0 0; cursor: pointer; user-select: none; font-size: 14px; font-weight: 700; color: var(--text); border: 1px solid var(--border); border-bottom: none; transition: all .15s; }
+.month-header { display: flex; align-items: center; gap: 10px; padding: 13px 18px; background: linear-gradient(135deg, rgba(255,255,255,.95) 0%, rgba(238,242,255,.95) 100%); border-radius: var(--radius-md) var(--radius-md) 0 0; cursor: pointer; user-select: none; font-size: 14px; font-weight: 700; color: var(--text); border: 1px solid var(--border); border-bottom: none; transition: all .15s; }
 .month-header:hover { background: linear-gradient(135deg, rgba(37,99,235,.08) 0%, rgba(139,92,246,.06) 100%); }
 .month-header .arrow { font-size: 12px; color: var(--primary); width: 20px; height: 20px; text-align: center; line-height: 20px; border-radius: 50%; background: rgba(37,99,235,.1); transition: transform .2s; }
 .month-header .count { font-weight: 500; font-size: 12px; color: var(--text-3); }
@@ -259,7 +259,7 @@ td.no-edit { font-weight: 600; color: var(--text); }
   .table-wrap table { display: none; }
   .table-wrap .mobile-cards { display: block; }
 
-  .mob-card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-card); position: relative; border: 1px solid var(--border); content-visibility: auto; contain-intrinsic-size: auto 150px; }
+  .mob-card { background: #fff; border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-card); position: relative; border: 1px solid var(--border); content-visibility: auto; contain-intrinsic-size: auto 150px; contain: layout paint; }
   .mob-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .mob-card-header .date-tag { font-size: 14px; font-weight: 700; color: var(--text); }
   .mob-card-actions { display: flex; gap: 6px; }
@@ -274,7 +274,7 @@ td.no-edit { font-weight: 600; color: var(--text); }
   .mob-card-fields .field input:focus, .mob-card-fields .field select:focus { border-color: var(--primary); outline: none; background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
   .mob-empty { text-align: center; padding: 40px 20px; color: var(--text-3); font-size: 14px; background: var(--card-bg); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }
 
-  .mob-summary-card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-card); border: 1px solid var(--border); content-visibility: auto; contain-intrinsic-size: auto 180px; }
+  .mob-summary-card { background: #fff; border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-card); border: 1px solid var(--border); content-visibility: auto; contain-intrinsic-size: auto 180px; contain: layout paint; }
   .mob-summary-card .s-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .mob-summary-card .s-header .month-tag { font-size: 14px; }
   .mob-summary-card .s-header .anchor-name { font-size: 14px; font-weight: 700; color: var(--text); }
@@ -1443,8 +1443,8 @@ function fmtVal(v, fmt) {
   if (v === 0 && fmt) return '0';
   if (fmt === 'pct') return (v*100).toFixed(1)+'%';
   if (fmt === 'pct2') return v.toFixed(2);
-  if (fmt === 'money') return '\u00A5'+v.toLocaleString();
-  if (fmt === 'money1') return '\u00A5'+v.toLocaleString(undefined,{minimumFractionDigits:1, maximumFractionDigits:1});
+  if (fmt === 'money') return '\u00A5'+Math.round(Number(v)).toLocaleString();
+  if (fmt === 'money1') return '\u00A5'+Math.round(Number(v)).toLocaleString(undefined,{minimumFractionDigits:1, maximumFractionDigits:1});
   return v;
 }
 
@@ -1728,12 +1728,12 @@ function renderSummaryTable(data) {
       SUMMARY_COLS.forEach(c => {
         if (c.calc) html += `<td class="calc">${fmtVal(r[c.key], c.fmt)}</td>`;
         else {
-          // money 字段在 input 显示前做 Math.round，避免浮点累加精度噪声（如 39198.729999）
+          // money 字段统一 Math.round 取整显示
           let raw = r[c.key];
           let inputVal;
           if (raw === 0) inputVal = '0';
           else if (raw == null) inputVal = '';
-          else if (typeof raw === 'number' && c.fmt === 'money') inputVal = raw.toString();
+          else if (typeof raw === 'number' && c.fmt === 'money') inputVal = Math.round(raw).toString();
           else inputVal = String(raw);
           html += `<td><input value="${esc(inputVal)}" data-sidx="${idx}" data-field="${c.key}" onchange="updateSummary(this)" onfocus="this.select()"></td>`;
         }
@@ -1944,7 +1944,10 @@ function renderSummaryMobile(data) {
     SUMMARY_COLS.forEach(c => {
       if (c.key==='month'||c.key==='anchor') return;
       let v = r[c.key];
-      let display = c.calc ? fmtVal(v, c.fmt) : String(v===0?'0':v||'');
+      let display;
+      if (c.calc) { display = fmtVal(v, c.fmt); }
+      else if (c.fmt === 'money') { display = v ? Math.round(Number(v)).toLocaleString() : '0'; }
+      else { display = v===0?'0':(v||''); }
       html += `<div class="metric${c.calc?'':' editable'}" ${!c.calc?`onclick="editSummaryMetric(${idx},'${c.key}',this)"`:''}>
         <span class="m-label">${c.label}</span><span class="m-value${c.calc?' m-calc':''}">${esc(display)}</span></div>`;
     });

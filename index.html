@@ -472,9 +472,14 @@ if(sessionStorage.getItem('_gk')==='1'){
     <div class="toolbar" id="toolbar-quarterly">
       <label>季度：</label>
       <select id="filter-quarter-compare" onchange="renderQuarterly()">
+        <option value="Q1">仅 Q1（1-3月）</option>
+        <option value="Q2">仅 Q2（4-6月）</option>
+        <option value="Q3">仅 Q3（7-9月）</option>
+        <option value="Q4">仅 Q4（10-12月）</option>
+        <option value="Q1Q2">Q1 vs Q2 对比</option>
         <option value="Q2Q3">Q2 vs Q3 对比</option>
-        <option value="Q2">仅 Q2</option>
-        <option value="Q3">仅 Q3</option>
+        <option value="Q3Q4">Q3 vs Q4 对比</option>
+        <option value="Q1Q4">Q1 vs Q4 对比</option>
       </select>
     </div>
     <div id="quarterly-content"></div>
@@ -2025,123 +2030,131 @@ function destroyCharts() {
 }
 
 // ===== QUARTERLY ANALYSIS =====
+function getQuarterMonths(q) {
+  return { Q1:['1','2','3'], Q2:['4','5','6'], Q3:['7','8','9'], Q4:['10','11','12'] }[q] || [];
+}
+function getQuarterLabel(q) {
+  return { Q1:'Q1（1-3月）', Q2:'Q2（4-6月）', Q3:'Q3（7-9月）', Q4:'Q4（10-12月）' }[q] || q;
+}
+
 function renderQuarterly() {
   let mode = document.getElementById('filter-quarter-compare').value;
   let c = document.getElementById('quarterly-content');
   
-  let q2Months = ['4','5','6'];
-  let q3Months = ['7','8','9'];
+  let q1Months = getQuarterMonths('Q1');
+  let q2Months = getQuarterMonths('Q2');
+  let q3Months = getQuarterMonths('Q3');
+  let q4Months = getQuarterMonths('Q4');
   
-  let q2Total = aggregateQuarter(q2Months, 'Q2');
-  let q3Total = aggregateQuarter(q3Months, 'Q3');
+  // 一次性算全 4 个季度的数据
+  let Q = {};
+  ['Q1','Q2','Q3','Q4'].forEach(q => {
+    let ms = getQuarterMonths(q);
+    Q[q] = {
+      total: aggregateQuarter(ms, q),
+      xiao: aggregateQuarterAnchor(ms, q, '潇潇'),
+      liu: aggregateQuarterAnchor(ms, q, '六六'),
+      durXiao: aggregateAnchorQuarterDuration(ms, '潇潇'),
+      durLiu: aggregateAnchorQuarterDuration(ms, '六六'),
+    };
+    Q[q].durTotal = Q[q].durXiao + Q[q].durLiu;
+  });
   
-  let q2Xiao = aggregateQuarterAnchor(q2Months, 'Q2', '潇潇');
-  let q2Liu = aggregateQuarterAnchor(q2Months, 'Q2', '六六');
-  let q3Xiao = aggregateQuarterAnchor(q3Months, 'Q3', '潇潇');
-  let q3Liu = aggregateQuarterAnchor(q3Months, 'Q3', '六六');
-  
-  // 主播季度总时长（来自 DURATION_DATA，与时长 tab 同口径）
-  let durQ2Xiao = aggregateAnchorQuarterDuration(q2Months, '潇潇');
-  let durQ2Liu  = aggregateAnchorQuarterDuration(q2Months, '六六');
-  let durQ3Xiao = aggregateAnchorQuarterDuration(q3Months, '潇潇');
-  let durQ3Liu  = aggregateAnchorQuarterDuration(q3Months, '六六');
-  let durQ2Total = durQ2Xiao + durQ2Liu;
-  let durQ3Total = durQ3Xiao + durQ3Liu;
-  
-  let durHtml = renderQuarterDurationSection(mode, q2Months, q3Months, durQ2Xiao, durQ2Liu, durQ3Xiao, durQ3Liu, durQ2Total, durQ3Total);
-  
-  if (mode === 'Q2Q3') {
-    c.innerHTML = durHtml + renderQCompare(q2Total, q3Total, q2Xiao, q2Liu, q3Xiao, q3Liu);
-  } else if (mode === 'Q2') {
-    c.innerHTML = durHtml + renderSingleQ(q2Total, q2Xiao, q2Liu, 'Q2（4-6月）');
+  let isCompare = mode.length === 4; // Q1Q2 是 4 字符，Q1 是 2
+  let qA, qB;
+  if (isCompare) {
+    qA = mode.slice(0,2);
+    qB = mode.slice(2,4);
   } else {
-    c.innerHTML = durHtml + renderSingleQ(q3Total, q3Xiao, q3Liu, 'Q3（7-9月）');
+    qA = qB = mode;
   }
   
-  if (!isMobile() && mode === 'Q2Q3') {
-    setTimeout(() => {
-      destroyCharts();
-      renderQuarterCharts(q2Total, q3Total, q2Xiao, q3Xiao, q2Liu, q3Liu);
-      renderQuarterDurationChart(durQ2Xiao, durQ2Liu, durQ3Xiao, durQ3Liu);
-    }, 100);
-  }
-}
-
-// 季度总时长板块（KPI + 环比）
-function renderQuarterDurationSection(mode, q2Months, q3Months, q2X, q2L, q3X, q3L, q2Total, q3Total) {
-  let title = mode === 'Q2Q3' ? '⏱ 主播季度总时长对比' : (mode === 'Q2' ? '⏱ Q2 主播总时长' : '⏱ Q3 主播总时长');
-  let q2Label = 'Q2（4-6月）';
-  let q3Label = 'Q3（7-9月）';
+  let A = Q[qA], B = Q[qB];
+  let aLabel = getQuarterLabel(qA);
+  let bLabel = getQuarterLabel(qB);
   
-  if (mode === 'Q2Q3') {
-    return `
-      <div class="section-title">${title}</div>
+  // 时长 section
+  let durHtml;
+  if (isCompare) {
+    durHtml = `
+      <div class="section-title">⏱ 主播季度总时长对比</div>
       <div class="kpi-row">
         <div class="kpi-card kpi-blue">
-          <div class="kpi-label">潇潇 ${q2Label}</div>
-          <div class="kpi-value">${q2X.toFixed(1)}h</div>
-          <div class="kpi-bar" style="width:${Math.min(100,q2X/3)}%"></div>
+          <div class="kpi-label">潇潇 ${aLabel}</div>
+          <div class="kpi-value">${A.durXiao.toFixed(1)}h</div>
+          <div class="kpi-bar" style="width:${Math.min(100,A.durXiao/3)}%"></div>
         </div>
         <div class="kpi-card kpi-blue">
-          <div class="kpi-label">潇潇 ${q3Label}</div>
-          <div class="kpi-value">${q3X.toFixed(1)}h</div>
-          <div class="kpi-trend">${deltaStr(q3X, q2X)}</div>
-          <div class="kpi-bar" style="width:${Math.min(100,q3X/3)}%"></div>
+          <div class="kpi-label">潇潇 ${bLabel}</div>
+          <div class="kpi-value">${B.durXiao.toFixed(1)}h</div>
+          <div class="kpi-trend">${deltaStr(B.durXiao, A.durXiao)}</div>
+          <div class="kpi-bar" style="width:${Math.min(100,B.durXiao/3)}%"></div>
         </div>
         <div class="kpi-card kpi-green">
-          <div class="kpi-label">六六 ${q2Label}</div>
-          <div class="kpi-value">${q2L.toFixed(1)}h</div>
-          <div class="kpi-bar" style="width:${Math.min(100,q2L/3)}%"></div>
+          <div class="kpi-label">六六 ${aLabel}</div>
+          <div class="kpi-value">${A.durLiu.toFixed(1)}h</div>
+          <div class="kpi-bar" style="width:${Math.min(100,A.durLiu/3)}%"></div>
         </div>
         <div class="kpi-card kpi-green">
-          <div class="kpi-label">六六 ${q3Label}</div>
-          <div class="kpi-value">${q3L.toFixed(1)}h</div>
-          <div class="kpi-trend">${deltaStr(q3L, q2L)}</div>
-          <div class="kpi-bar" style="width:${Math.min(100,q3L/3)}%"></div>
+          <div class="kpi-label">六六 ${bLabel}</div>
+          <div class="kpi-value">${B.durLiu.toFixed(1)}h</div>
+          <div class="kpi-trend">${deltaStr(B.durLiu, A.durLiu)}</div>
+          <div class="kpi-bar" style="width:${Math.min(100,B.durLiu/3)}%"></div>
         </div>
         <div class="kpi-card kpi-purple">
-          <div class="kpi-label">合计 ${q2Label}</div>
-          <div class="kpi-value">${q2Total.toFixed(1)}h</div>
+          <div class="kpi-label">合计 ${aLabel}</div>
+          <div class="kpi-value">${A.durTotal.toFixed(1)}h</div>
         </div>
         <div class="kpi-card kpi-purple">
-          <div class="kpi-label">合计 ${q3Label}</div>
-          <div class="kpi-value">${q3Total.toFixed(1)}h</div>
-          <div class="kpi-trend">${deltaStr(q3Total, q2Total)}</div>
+          <div class="kpi-label">合计 ${bLabel}</div>
+          <div class="kpi-value">${B.durTotal.toFixed(1)}h</div>
+          <div class="kpi-trend">${deltaStr(B.durTotal, A.durTotal)}</div>
         </div>
       </div>
       <div class="chart-card" style="margin-bottom:18px">
-        <h3>📊 主播 Q2 vs Q3 时长对比</h3>
+        <h3>📊 主播 ${qA} vs ${qB} 时长对比</h3>
         <canvas id="chart-quarter-duration"></canvas>
       </div>
     `;
   } else {
-    let isQ2 = mode === 'Q2';
-    let xH = isQ2 ? q2X : q3X;
-    let lH = isQ2 ? q2L : q3L;
-    let tH = isQ2 ? q2Total : q3Total;
-    let label = isQ2 ? q2Label : q3Label;
-    return `
-      <div class="section-title">${title}</div>
+    durHtml = `
+      <div class="section-title">⏱ ${mode} 主播总时长</div>
       <div class="kpi-row">
-        <div class="kpi-card kpi-blue"><div class="kpi-label">潇潇 ${label}</div><div class="kpi-value">${xH.toFixed(1)}h</div><div class="kpi-bar" style="width:${Math.min(100,xH/3)}%"></div></div>
-        <div class="kpi-card kpi-green"><div class="kpi-label">六六 ${label}</div><div class="kpi-value">${lH.toFixed(1)}h</div><div class="kpi-bar" style="width:${Math.min(100,lH/3)}%"></div></div>
-        <div class="kpi-card kpi-purple"><div class="kpi-label">合计 ${label}</div><div class="kpi-value">${tH.toFixed(1)}h</div></div>
+        <div class="kpi-card kpi-blue"><div class="kpi-label">潇潇 ${aLabel}</div><div class="kpi-value">${A.durXiao.toFixed(1)}h</div><div class="kpi-bar" style="width:${Math.min(100,A.durXiao/3)}%"></div></div>
+        <div class="kpi-card kpi-green"><div class="kpi-label">六六 ${aLabel}</div><div class="kpi-value">${A.durLiu.toFixed(1)}h</div><div class="kpi-bar" style="width:${Math.min(100,A.durLiu/3)}%"></div></div>
+        <div class="kpi-card kpi-purple"><div class="kpi-label">合计 ${aLabel}</div><div class="kpi-value">${A.durTotal.toFixed(1)}h</div></div>
       </div>
     `;
   }
+  
+  if (isCompare) {
+    c.innerHTML = durHtml + renderQCompare(qA, qB, A, B);
+  } else {
+    c.innerHTML = durHtml + renderSingleQ(A.total, A.xiao, A.liu, aLabel);
+  }
+  
+  if (!isMobile()) {
+    setTimeout(() => {
+      destroyCharts();
+      if (isCompare) {
+        renderQuarterDurationChart(A, B, qA, qB);
+        renderQuarterCharts(A.total, B.total, A.xiao, B.xiao, A.liu, B.liu, qA, qB);
+      }
+    }, 100);
+  }
 }
 
-// 季度时长柱状图
-function renderQuarterDurationChart(q2X, q2L, q3X, q3L) {
+// 季度时长柱状图（通用版）
+function renderQuarterDurationChart(A, B, qA, qB) {
   let canvas = document.getElementById('chart-quarter-duration');
   if (!canvas) return;
   myCharts.quarterDuration = new Chart(canvas, {
     type: 'bar',
     data: {
-      labels: ['潇潇 Q2', '潇潇 Q3', '六六 Q2', '六六 Q3'],
+      labels: ['潇潇 ' + qA, '潇潇 ' + qB, '六六 ' + qA, '六六 ' + qB],
       datasets: [{
         label: '直播时长 (小时)',
-        data: [q2X, q3X, q2L, q3L],
+        data: [A.durXiao, B.durXiao, A.durLiu, B.durLiu],
         backgroundColor: ['rgba(37,99,235,0.7)','rgba(37,99,235,0.4)','rgba(16,185,129,0.7)','rgba(16,185,129,0.4)'],
         borderRadius: 6
       }]
@@ -2152,6 +2165,28 @@ function renderQuarterDurationChart(q2X, q2L, q3X, q3L) {
       plugins: { legend: { display: false } },
       scales: { y: { beginAtZero: true, title: { display: true, text: '时长 (小时)' } } }
     }
+  });
+}
+
+function renderQuarterCharts(a, b, aX, bX, aL, bL, qA, qB) {
+  myCharts.radar = new Chart(document.getElementById('chart-quarter-radar'), {
+    type: 'bar', data: { labels: ['线索数','有效数','签单数','签单值(万)','总花费(万)','ROI'],
+      datasets: [
+        { label: qA, data: [a.leads, a.validLeads, a.orders, a.orderValue/10000, a.totalCost/10000, a.roi], backgroundColor: 'rgba(37,99,235,0.7)' },
+        { label: qB, data: [b.leads, b.validLeads, b.orders, b.orderValue/10000, b.totalCost/10000, b.roi], backgroundColor: 'rgba(239,68,68,0.7)' }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } },
+      scales: { y: { beginAtZero: true } } }
+  });
+
+  myCharts.anchorQuarter = new Chart(document.getElementById('chart-anchor-quarter'), {
+    type: 'bar', data: { labels: [qA+'线索',qB+'线索',qA+'有效',qB+'有效',qA+'签单',qB+'签单',qA+'签单值(万)',qB+'签单值(万)',qA+' ROI',qB+' ROI'],
+      datasets: [
+        { label: '潇潇', data: [aX.leads, bX.leads, aX.validLeads, bX.validLeads, aX.orders, bX.orders, aX.orderValue/10000, bX.orderValue/10000, aX.roi, bX.roi], backgroundColor: 'rgba(37,99,235,0.7)' },
+        { label: '六六', data: [aL.leads, bL.leads, aL.validLeads, bL.validLeads, aL.orders, bL.orders, aL.orderValue/10000, bL.orderValue/10000, aL.roi, bL.roi], backgroundColor: 'rgba(16,185,129,0.7)' }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } },
+      scales: { y: { beginAtZero: true } } }
   });
 }
 
@@ -2202,86 +2237,89 @@ function deltaStr(a, b) {
   return `<span class="${cls}">${arrow} ${Math.abs(d).toFixed(0)}%</span>`;
 }
 
-function renderQCompare(q2, q3, q2X, q2L, q3X, q3L) {
+function renderQCompare(qA, qB, A, B) {
+  // A/B 包含 {total, xiao, liu}，qA/qB 是季度标识如 'Q1'
+  let a = A.total, b = B.total;
+  let aX = A.xiao, bX = B.xiao;
+  let aL = A.liu, bL = B.liu;
+  let aLabel = getQuarterLabel(qA), bLabel = getQuarterLabel(qB);
+  
   // Analysis text
-  let leadsDelta = q3.leads - q2.leads;
-  let roiDelta = q3.roi - q2.roi;
+  let leadsDelta = b.leads - a.leads;
   let analysis = '';
-  
-  if (q2.leads > 0 && leadsDelta > 0) {
-    analysis = `Q3线索量相比Q2<span class="highlight">增长${(leadsDelta/q2.leads*100).toFixed(0)}%</span>，`;
-  } else if (q2.leads > 0 && leadsDelta < 0) {
-    analysis = `Q3线索量相比Q2<span class="highlight">下降${Math.abs(leadsDelta/q2.leads*100).toFixed(0)}%</span>，`;
+  if (a.leads > 0 && leadsDelta > 0) {
+    analysis = `${qB}线索量相比${qA}<span class="highlight">增长${(leadsDelta/a.leads*100).toFixed(0)}%</span>，`;
+  } else if (a.leads > 0 && leadsDelta < 0) {
+    analysis = `${qB}线索量相比${qA}<span class="highlight">下降${Math.abs(leadsDelta/a.leads*100).toFixed(0)}%</span>，`;
   } else {
-    analysis = `Q3线索量${q3.leads}条，`;
+    analysis = `${qB}线索量${b.leads}条，`;
   }
-  if (q3.orders > q2.orders) {
-    analysis += `签单数从${q2.orders}单<span class="good">提升至${q3.orders}单</span>；`;
-  } else if (q3.orders < q2.orders) {
-    analysis += `签单数从${q2.orders}单<span class="highlight">下降至${q3.orders}单</span>；`;
+  if (b.orders > a.orders) {
+    analysis += `签单数从${a.orders}单<span class="good">提升至${b.orders}单</span>；`;
+  } else if (b.orders < a.orders) {
+    analysis += `签单数从${a.orders}单<span class="highlight">下降至${b.orders}单</span>；`;
   } else {
-    analysis += `签单数持平为${q3.orders}单，`;
+    analysis += `签单数持平为${b.orders}单，`;
   }
-  analysis += `ROI从${q2.roi.toFixed(2)}变为${q3.roi.toFixed(2)}。`;
+  analysis += `ROI从${a.roi.toFixed(2)}变为${b.roi.toFixed(2)}。`;
   
-  // Anchor comparison
-  let xiaoShare = (q3X.leads / Math.max(1, q3.leads) * 100).toFixed(0);
-  let liuShare = (q3L.leads / Math.max(1, q3.leads) * 100).toFixed(0);
+  let xiaoShare = (bX.leads / Math.max(1, b.leads) * 100).toFixed(0);
+  let liuShare = (bL.leads / Math.max(1, b.leads) * 100).toFixed(0);
   
   return `
     <div class="analysis-box">
-      <h3>📝 Q2 vs Q3 分析总结</h3>
+      <h3>📝 ${qA} vs ${qB} 分析总结</h3>
       <p>${analysis}</p>
-      <p style="margin-top:8px">Q3主播贡献：潇潇占比 <span class="good">${xiaoShare}%</span>，六六占比 <span class="good">${liuShare}%</span>。</p>
+      <p style="margin-top:8px">${qB}主播贡献：潇潇占比 <span class="good">${xiaoShare}%</span>，六六占比 <span class="good">${liuShare}%</span>。</p>
     </div>
     <div class="quarter-compare">
-      <div class="quarter-card q2"><h3>📘 Q2（4-6月）</h3>
+      <div class="quarter-card q2"><h3>📘 ${aLabel}</h3>
         <div class="q-metrics">
-          ${qMetric('线索数', q2.leads, '')}${qMetric('有效数', q2.validLeads, '')}
-          ${qMetric('有效率', (q2.validRate*100).toFixed(1)+'%', '')}${qMetric('签单数', q2.orders, '')}
-          ${qMetric('签单值', fmtMoneyInt(q2.orderValue), '')}${qMetric('总花费', fmtMoneyInt(q2.totalCost), '')}
-          ${qMetric('线索成本', '\u00A5'+(q2.leadCost||0).toLocaleString(undefined,{minimumFractionDigits:1, maximumFractionDigits:1}), '')}${qMetric('ROI', q2.roi.toFixed(2), '')}
+          ${qMetric('线索数', a.leads, '')}${qMetric('有效数', a.validLeads, '')}
+          ${qMetric('有效率', (a.validRate*100).toFixed(1)+'%', '')}${qMetric('签单数', a.orders, '')}
+          ${qMetric('签单值', fmtMoneyInt(a.orderValue), '')}${qMetric('总花费', fmtMoneyInt(a.totalCost), '')}
+          ${qMetric('线索成本', '\u00A5'+(a.leadCost||0).toLocaleString(undefined,{minimumFractionDigits:1, maximumFractionDigits:1}), '')}${qMetric('ROI', a.roi.toFixed(2), '')}
         </div>
       </div>
-      <div class="quarter-card q3"><h3>📕 Q3（7-9月）</h3>
+      <div class="quarter-card q3"><h3>📕 ${bLabel}</h3>
         <div class="q-metrics">
-          ${qMetric('线索数', q3.leads, deltaStr(q3.leads, q2.leads))}${qMetric('有效数', q3.validLeads, deltaStr(q3.validLeads, q2.validLeads))}
-          ${qMetric('有效率', (q3.validRate*100).toFixed(1)+'%', '')}${qMetric('签单数', q3.orders, deltaStr(q3.orders, q2.orders))}
-          ${qMetric('签单值', fmtMoneyInt(q3.orderValue), deltaStr(q3.orderValue, q2.orderValue))}${qMetric('总花费', fmtMoneyInt(q3.totalCost), deltaStr(q3.totalCost, q2.totalCost))}
-          ${qMetric('线索成本', '\u00A5'+(q3.leadCost||0).toLocaleString(undefined,{minimumFractionDigits:1, maximumFractionDigits:1}), '')}${qMetric('ROI', q3.roi.toFixed(2), deltaStr(q3.roi, q2.roi))}
+          ${qMetric('线索数', b.leads, deltaStr(b.leads, a.leads))}${qMetric('有效数', b.validLeads, deltaStr(b.validLeads, a.validLeads))}
+          ${qMetric('有效率', (b.validRate*100).toFixed(1)+'%', '')}${qMetric('签单数', b.orders, deltaStr(b.orders, a.orders))}
+          ${qMetric('签单值', fmtMoneyInt(b.orderValue), deltaStr(b.orderValue, a.orderValue))}${qMetric('总花费', fmtMoneyInt(b.totalCost), deltaStr(b.totalCost, a.totalCost))}
+          ${qMetric('线索成本', '\u00A5'+(b.leadCost||0).toLocaleString(undefined,{minimumFractionDigits:1, maximumFractionDigits:1}), '')}${qMetric('ROI', b.roi.toFixed(2), deltaStr(b.roi, a.roi))}
         </div>
       </div>
     </div>
     <div class="section-title">🎯 主播季度对比</div>
     <div class="anchor-compare">
-      <div class="anchor-card${q3X.leads>q3L.leads?' better':''}"><div class="ac-name">潇潇</div>
-        <div class="ac-row"><span class="ac-label">Q2线索</span><span class="ac-value">${q2X.leads}</span></div>
-        <div class="ac-row"><span class="ac-label">Q3线索</span><span class="ac-value">${q3X.leads}</span></div>
-        <div class="ac-row"><span class="ac-label">Q2有效</span><span class="ac-value">${q2X.validLeads}</span></div>
-        <div class="ac-row"><span class="ac-label">Q3有效</span><span class="ac-value">${q3X.validLeads}</span></div>
-        <div class="ac-row"><span class="ac-label">Q2签单</span><span class="ac-value">${q2X.orders}</span></div>
-        <div class="ac-row"><span class="ac-label">Q3签单</span><span class="ac-value">${q3X.orders}</span></div>
-        <div class="ac-row"><span class="ac-label">Q2签单值</span><span class="ac-value">¥${(q2X.orderValue/10000).toFixed(1)}万</span></div>
-        <div class="ac-row"><span class="ac-label">Q3签单值</span><span class="ac-value">¥${(q3X.orderValue/10000).toFixed(1)}万</span></div>
-        <div class="ac-row"><span class="ac-label">Q2 ROI</span><span class="ac-value">${q2X.roi.toFixed(2)}</span></div>
-        <div class="ac-row"><span class="ac-label">Q3 ROI</span><span class="ac-value">${q3X.roi.toFixed(2)}</span></div>
+      <div class="anchor-card${bX.leads>bL.leads?' better':''}"><div class="ac-name">潇潇</div>
+        <div class="ac-row"><span class="ac-label">${qA}线索</span><span class="ac-value">${aX.leads}</span></div>
+        <div class="ac-row"><span class="ac-label">${qB}线索</span><span class="ac-value">${bX.leads}</span></div>
+        <div class="ac-row"><span class="ac-label">${qA}有效</span><span class="ac-value">${aX.validLeads}</span></div>
+        <div class="ac-row"><span class="ac-label">${qB}有效</span><span class="ac-value">${bX.validLeads}</span></div>
+        <div class="ac-row"><span class="ac-label">${qA}签单</span><span class="ac-value">${aX.orders}</span></div>
+        <div class="ac-row"><span class="ac-label">${qB}签单</span><span class="ac-value">${bX.orders}</span></div>
+        <div class="ac-row"><span class="ac-label">${qA}签单值</span><span class="ac-value">¥${(aX.orderValue/10000).toFixed(1)}万</span></div>
+        <div class="ac-row"><span class="ac-label">${qB}签单值</span><span class="ac-value">¥${(bX.orderValue/10000).toFixed(1)}万</span></div>
+        <div class="ac-row"><span class="ac-label">${qA} ROI</span><span class="ac-value">${aX.roi.toFixed(2)}</span></div>
+        <div class="ac-row"><span class="ac-label">${qB} ROI</span><span class="ac-value">${bX.roi.toFixed(2)}</span></div>
       </div>
-      <div class="anchor-card${q3L.leads>q3X.leads?' better':''}"><div class="ac-name">六六</div>
-        <div class="ac-row"><span class="ac-label">Q2线索</span><span class="ac-value">${q2L.leads}</span></div>
-        <div class="ac-row"><span class="ac-label">Q3线索</span><span class="ac-value">${q3L.leads}</span></div>
-        <div class="ac-row"><span class="ac-label">Q2有效</span><span class="ac-value">${q2L.validLeads}</span></div>
-        <div class="ac-row"><span class="ac-label">Q3有效</span><span class="ac-value">${q3L.validLeads}</span></div>
-        <div class="ac-row"><span class="ac-label">Q2签单</span><span class="ac-value">${q2L.orders}</span></div>
-        <div class="ac-row"><span class="ac-label">Q3签单</span><span class="ac-value">${q3L.orders}</span></div>
-        <div class="ac-row"><span class="ac-label">Q2签单值</span><span class="ac-value">¥${(q2L.orderValue/10000).toFixed(1)}万</span></div>
-        <div class="ac-row"><span class="ac-label">Q3签单值</span><span class="ac-value">¥${(q3L.orderValue/10000).toFixed(1)}万</span></div>
-        <div class="ac-row"><span class="ac-label">Q2 ROI</span><span class="ac-value">${q2L.roi.toFixed(2)}</span></div>
-        <div class="ac-row"><span class="ac-label">Q3 ROI</span><span class="ac-value">${q3L.roi.toFixed(2)}</span></div>
+      <div class="anchor-card${bL.leads>bX.leads?' better':''}"><div class="ac-name">六六</div>
+        <div class="ac-row"><span class="ac-label">${qA}线索</span><span class="ac-value">${aL.leads}</span></div>
+        <div class="ac-row"><span class="ac-label">${qB}线索</span><span class="ac-value">${bL.leads}</span></div>
+        <div class="ac-row"><span class="ac-label">${qA}有效</span><span class="ac-value">${aL.validLeads}</span></div>
+        <div class="ac-row"><span class="ac-label">${qB}有效</span><span class="ac-value">${bL.validLeads}</span></div>
+        <div class="ac-row"><span class="ac-label">${qA}签单</span><span class="ac-value">${aL.orders}</span></div>
+        <div class="ac-row"><span class="ac-label">${qB}签单</span><span class="ac-value">${bL.orders}</span></div>
+        <div class="ac-row"><span class="ac-label">${qA}签单值</span><span class="ac-value">¥${(aL.orderValue/10000).toFixed(1)}万</span></div>
+        <div class="ac-row"><span class="ac-label">${qB}签单值</span><span class="ac-value">¥${(bL.orderValue/10000).toFixed(1)}万</span></div>
+        <div class="ac-row"><span class="ac-label">${qA} ROI</span><span class="ac-value">${aL.roi.toFixed(2)}</span></div>
+        <div class="ac-row"><span class="ac-label">${qB} ROI</span><span class="ac-value">${bL.roi.toFixed(2)}</span></div>
       </div>
     </div>
     <div class="charts-grid">
       <div class="chart-card"><h3>📊 季度指标对比</h3><canvas id="chart-quarter-radar"></canvas></div>
-      <div class="chart-card"><h3>👥 主播 Q2 vs Q3 对比</h3><canvas id="chart-anchor-quarter"></canvas></div>
+      <div class="chart-card"><h3>👥 主播 ${qA} vs ${qB} 对比</h3><canvas id="chart-anchor-quarter"></canvas></div>
     </div>
   `;
 }

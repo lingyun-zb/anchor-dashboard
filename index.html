@@ -477,7 +477,7 @@ if(sessionStorage.getItem('_gk')==='1'){
         <option value="Q3">仅 Q3（7-9月）</option>
         <option value="Q4">仅 Q4（10-12月）</option>
         <option value="Q1Q2">Q1 vs Q2 对比</option>
-        <option value="Q2Q3">Q2 vs Q3 对比</option>
+        <option value="Q2Q3" selected>Q2 vs Q3 对比</option>
         <option value="Q3Q4">Q3 vs Q4 对比</option>
         <option value="Q1Q4">Q1 vs Q4 对比</option>
       </select>
@@ -2192,13 +2192,13 @@ function renderQuarterCharts(a, b, aX, bX, aL, bL, qA, qB) {
 
 function aggregateQuarter(months, label) {
   let monthNums = months.map(m => parseInt(m));
-  // 优先用总计行；没有总计行则累加所有主播行（兼容早期月份）
   let rows = SUMMARY_DATA.filter(r => r.anchor === '总计' && monthNums.some(m => parseMonthNum(r.month) === m));
   let useAnchorRows = rows.length === 0;
   if (useAnchorRows) {
     rows = SUMMARY_DATA.filter(r => r.anchor !== '总计' && monthNums.some(m => parseMonthNum(r.month) === m));
   }
-  let t = { leads:0, validLeads:0, totalReceipts:0, storeVisits:0, orders:0, orderValue:0, totalCost:0 };
+  let t = { leads:0, validLeads:0, totalReceipts:0, storeVisits:0, orders:0, orderValue:0, totalCost:0,
+    validRate:0, leadToStore:0, leadOrderRate:0, leadCost:0, validToStore:0, validOrderRate:0, validCost:0, roi:0 };
   rows.forEach(r => {
     t.leads+=r.leads||0; t.validLeads+=r.validLeads||0; t.totalReceipts+=r.totalReceipts||0;
     t.storeVisits+=r.storeVisits||0; t.orders+=r.orders||0; t.orderValue+=r.orderValue||0; t.totalCost+=r.totalCost||0;
@@ -2211,8 +2211,10 @@ function aggregateQuarter(months, label) {
 }
 
 function aggregateQuarterAnchor(months, label, anchor) {
-  let rows = SUMMARY_DATA.filter(r => r.anchor === anchor && months.some(m => parseMonthNum(r.month) === parseInt(m)));
-  let t = { leads:0, validLeads:0, totalReceipts:0, storeVisits:0, orders:0, orderValue:0, totalCost:0 };
+  let monthNums = months.map(m => parseInt(m));
+  let rows = SUMMARY_DATA.filter(r => r.anchor === anchor && monthNums.some(m => parseMonthNum(r.month) === m));
+  let t = { leads:0, validLeads:0, totalReceipts:0, storeVisits:0, orders:0, orderValue:0, totalCost:0,
+    validRate:0, leadToStore:0, leadOrderRate:0, leadCost:0, validToStore:0, validOrderRate:0, validCost:0, roi:0 };
   rows.forEach(r => {
     t.leads+=r.leads||0; t.validLeads+=r.validLeads||0; t.totalReceipts+=r.totalReceipts||0;
     t.storeVisits+=r.storeVisits||0; t.orders+=r.orders||0; t.orderValue+=r.orderValue||0; t.totalCost+=r.totalCost||0;
@@ -2331,16 +2333,11 @@ function renderQCompare(qA, qB, A, B) {
 }
 
 function renderSingleQ(q, qX, qL, title) {
-  return `
-    <div class="quarter-card" style="border-left:4px solid #2563eb;max-width:600px">
-      <h3>📘 ${title} 汇总</h3>
-      <div class="q-metrics">
-        ${qMetric('线索数', q.leads, '')}${qMetric('有效数', q.validLeads, '')}
-        ${qMetric('有效率', (q.validRate*100).toFixed(1)+'%', '')}${qMetric('签单数', q.orders, '')}
-        ${qMetric('签单值', fmtMoneyInt(q.orderValue), '')}${qMetric('总花费', fmtMoneyInt(q.totalCost), '')}
-        ${qMetric('ROI', q.roi.toFixed(2), '')}${qMetric('线索成本', '\u00A5'+(q.leadCost||0).toLocaleString(undefined,{minimumFractionDigits:1, maximumFractionDigits:1}), '')}
-      </div>
-    </div>
+  let hasXiao = qX.leads > 0 || qX.orders > 0 || qX.totalCost > 0;
+  let hasLiu = qL.leads > 0 || qL.orders > 0 || qL.totalCost > 0;
+  let anchorSection = '';
+  if (hasXiao && hasLiu) {
+    anchorSection = `
     <div class="section-title">🎯 主播数据对比</div>
     <div class="anchor-compare">
       <div class="anchor-card${qX.leads>qL.leads?' better':''}"><div class="ac-name">潇潇</div>
@@ -2361,7 +2358,35 @@ function renderSingleQ(q, qX, qL, title) {
         <div class="ac-row"><span class="ac-label">总花费</span><span class="ac-value">\u00A5${(qL.totalCost/10000).toFixed(1)}万</span></div>
         <div class="ac-row"><span class="ac-label">ROI</span><span class="ac-value">${qL.roi.toFixed(2)}</span></div>
       </div>
+    </div>`;
+  } else {
+    // 单主播季度，不做对比
+    let onlyAnchor = hasXiao ? {name:'潇潇', d:qX} : {name:'六六', d:qL};
+    anchorSection = `
+    <div class="section-title">🎯 ${onlyAnchor.name} 单主播数据</div>
+    <div class="anchor-compare" style="grid-template-columns:1fr;max-width:500px">
+      <div class="anchor-card"><div class="ac-name">${onlyAnchor.name}</div>
+        <div class="ac-row"><span class="ac-label">线索数</span><span class="ac-value">${onlyAnchor.d.leads}</span></div>
+        <div class="ac-row"><span class="ac-label">有效数</span><span class="ac-value">${onlyAnchor.d.validLeads}</span></div>
+        <div class="ac-row"><span class="ac-label">有效率</span><span class="ac-value">${(onlyAnchor.d.validRate*100).toFixed(1)}%</span></div>
+        <div class="ac-row"><span class="ac-label">签单数</span><span class="ac-value">${onlyAnchor.d.orders}</span></div>
+        <div class="ac-row"><span class="ac-label">签单值</span><span class="ac-value">\u00A5${(onlyAnchor.d.orderValue/10000).toFixed(1)}万</span></div>
+        <div class="ac-row"><span class="ac-label">总花费</span><span class="ac-value">\u00A5${(onlyAnchor.d.totalCost/10000).toFixed(1)}万</span></div>
+        <div class="ac-row"><span class="ac-label">ROI</span><span class="ac-value">${onlyAnchor.d.roi.toFixed(2)}</span></div>
+      </div>
+    </div>`;
+  }
+  return `
+    <div class="quarter-card" style="border-left:4px solid #2563eb;max-width:600px">
+      <h3>📘 ${title} 汇总</h3>
+      <div class="q-metrics">
+        ${qMetric('线索数', q.leads, '')}${qMetric('有效数', q.validLeads, '')}
+        ${qMetric('有效率', (q.validRate*100).toFixed(1)+'%', '')}${qMetric('签单数', q.orders, '')}
+        ${qMetric('签单值', fmtMoneyInt(q.orderValue), '')}${qMetric('总花费', fmtMoneyInt(q.totalCost), '')}
+        ${qMetric('ROI', q.roi.toFixed(2), '')}${qMetric('线索成本', '\u00A5'+(q.leadCost||0).toLocaleString(undefined,{minimumFractionDigits:1, maximumFractionDigits:1}), '')}
+      </div>
     </div>
+    ${anchorSection}
   `;
 }
 

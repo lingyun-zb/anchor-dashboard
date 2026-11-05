@@ -62,6 +62,7 @@ table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nu
 .btn-green:hover { background: linear-gradient(135deg, #34d399 0%, #10b981 100%); box-shadow: 0 6px 16px rgba(16,185,129,.4); transform: translateY(-1px); }
 
 .tabs { display: flex; background: rgba(255,255,255,.6); backdrop-filter: blur(12px); padding: 12px 28px 0; gap: 6px; overflow-x: auto; box-shadow: 0 2px 12px rgba(37,99,235,.06); border-bottom: 1px solid rgba(37,99,235,.08); }
+.top-sticky { position: sticky; top: 0; z-index: 100; }
 .tab { padding: 12px 22px; cursor: pointer; font-size: 14px; font-weight: 600; color: #6b7280; border-radius: 12px 12px 0 0; transition: all .25s cubic-bezier(.4,0,.2,1); white-space: nowrap; position: relative; }
 .tab:hover { color: var(--primary); background: rgba(37,99,235,.08); }
 .tab.active { color: #fff; background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%); box-shadow: 0 4px 12px rgba(37,99,235,.25); }
@@ -115,10 +116,10 @@ table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nu
 .kpi-red .kpi-value { color: var(--danger); -webkit-text-fill-color: var(--danger); }
 .kpi-purple .kpi-value { color: var(--accent); -webkit-text-fill-color: var(--accent); }
 
-.table-wrap { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: var(--radius-md); box-shadow: var(--shadow-card); overflow: auto; max-height: calc(100vh - 240px); border: 1px solid var(--border); }
+.table-wrap { background: #fff; border-radius: var(--radius-md); box-shadow: var(--shadow-card); border: 1px solid var(--border); }
 table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; min-width: 900px; }
-thead { position: sticky; top: 0; z-index: 2; }
-th { background: linear-gradient(180deg, rgba(37,99,235,.12) 0%, rgba(139,92,246,.08) 100%); backdrop-filter: blur(8px); padding: 13px 10px; text-align: center; font-weight: 700; color: var(--primary-dark); border-bottom: 2px solid var(--primary); white-space: nowrap; font-size: 12.5px; letter-spacing: .3px; }
+thead { position: sticky; top: var(--sticky-h, 140px); z-index: 99; }
+th { background: linear-gradient(180deg, rgba(37,99,235,.12) 0%, rgba(139,92,246,.08) 100%); padding: 13px 10px; text-align: center; font-weight: 700; color: var(--primary-dark); border-bottom: 2px solid var(--primary); white-space: nowrap; font-size: 12.5px; letter-spacing: .3px; }
 td { padding: 10px 8px; text-align: center; border-bottom: 1px solid rgba(37,99,235,.08); transition: background .15s; }
 tbody tr:nth-child(even) td { background: rgba(37,99,235,.025); }
 tbody tr:hover td { background: rgba(37,99,235,.08); }
@@ -381,6 +382,7 @@ if(sessionStorage.getItem('_gk')==='1'){
 }
 </script>
 
+<div class="top-sticky">
 <div class="header">
   <h1>📊 主播直播统计表</h1>
   <div class="header-actions">
@@ -401,6 +403,7 @@ if(sessionStorage.getItem('_gk')==='1'){
   <div class="tab active" data-tab="duration" onclick="switchTab('duration')">⏱ 直播时长</div>
   <div class="tab" data-tab="summary" onclick="switchTab('summary')">📈 月度数据</div>
   <div class="tab" data-tab="quarterly" onclick="switchTab('quarterly')">📊 季度分析</div>
+</div>
 </div>
 
 <div class="main">
@@ -679,14 +682,20 @@ window.onload = async function() {
   populateSummaryMonthFilter();
   renderDuration();
   updateCounts();
+  updateStickyH();
   if (isMobile()) document.getElementById('mob-add-btn').style.display = 'block';
 };
 window.onresize = function() {
   destroyCharts();
+  updateStickyH();
   if (currentTab === 'duration') renderDuration();
   else if (currentTab === 'summary') renderSummary();
   else renderQuarterly();
 };
+function updateStickyH() {
+  let ts = document.querySelector('.top-sticky');
+  if (ts) document.documentElement.style.setProperty('--sticky-h', ts.offsetHeight + 'px');
+}
 // Flush pending API saves on close
 window.addEventListener('beforeunload', () => flushSaves());
 

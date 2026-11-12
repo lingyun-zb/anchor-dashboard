@@ -469,7 +469,7 @@
     "orderValue": 165000,
     "leadOrderRate": 0.07142857142857142,
     "validOrderRate": 0,
-    "totalCost": 8133.28,
+    "totalCost": 9133.44,
     "leadCost": 511.7271428571429,
     "validCost": 0,
     "roi": 23.031247121094108
@@ -488,7 +488,7 @@
     "orderValue": 0,
     "leadOrderRate": 0,
     "validOrderRate": 0,
-    "totalCost": 6973.04,
+    "totalCost": 7735.62,
     "leadCost": 542.85,
     "validCost": 0,
     "roi": 0
@@ -507,7 +507,7 @@
     "orderValue": 165000,
     "leadOrderRate": 0.04,
     "validOrderRate": 0,
-    "totalCost": 15106.32,
+    "totalCost": 16869.06,
     "leadCost": 525.4212,
     "validCost": 0,
     "roi": 12.56135077914633
